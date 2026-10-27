@@ -325,7 +325,7 @@ export function open(ctx, { onChange = () => {} } = {}) {
             h('div', { class: 'manage-filter' },
               h('input', {
                 type: 'search', id: 'manage-filter', class: 'lib-search', autocomplete: 'off',
-                placeholder: 'Filter: adp, practice 2, /gcp-.*-1/', 'aria-label': 'Filter exams',
+                placeholder: 'Find an exam to edit: demo, net, /-2$/', 'aria-label': 'Filter exams',
                 oninput: (ev) => { manage.filter = ev.target.value; renderExams(); },
               }),
               manageShown),
