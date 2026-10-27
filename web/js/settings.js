@@ -1,12 +1,15 @@
 // Settings panel: Repairs, theme × style, pass mark, and Manage exams (time, delete).
-import { h, clear } from './util.js';
+import { h, clear, groupLabel, examMatcher } from './util.js';
 
 const AGENT_LINE = 'Read .FIXPARSE.MD in this folder and work through the Repairs inbox.';
 
 export function open(ctx, { onChange = () => {} } = {}) {
   const root = document.getElementById('overlays');
   const notice = h('div', { class: 'notice bad', hidden: true });
-  const tbody = h('tbody');
+  const manageCount = h('span');
+  const manageShown = h('span', { class: 'muted small' });
+  const manageGroups = h('div', { class: 'manage-groups' });
+  const manage = { filter: '', open: new Set() };
   let pendingDelete = null;
 
   const showError = (err) => {
@@ -61,34 +64,55 @@ export function open(ctx, { onChange = () => {} } = {}) {
       showError(err);
       return;
     }
-    if (!exams.length) {
-      clear(tbody, h('tr', null, h('td', { colspan: '4', class: 'muted' }, 'No exams yet.')));
+    manageCount.textContent = `Manage exams (${exams.length})`;
+    const hits = exams.filter(examMatcher(manage.filter));
+    manageShown.textContent = manage.filter.trim() ? `${hits.length} shown` : '';
+    if (!hits.length) {
+      clear(manageGroups, h('p', { class: 'muted small' }, exams.length ? 'No exams match.' : 'No exams yet.'));
       return;
     }
-    clear(tbody, exams.flatMap((e) => {
-      const changed = e.duration_minutes !== e.default_duration_minutes;
-      const row = h('tr', null,
-        h('td', null, h('div', { class: 'mono' }, e.id), h('div', { class: 'muted small' }, e.title)),
-        h('td', null,
-          h('input', {
-            type: 'number', min: '1', max: '600', class: 'num-input', id: `time-${e.id}`, value: e.duration_minutes,
-            'aria-label': `Time in minutes for ${e.id}`,
-            onchange: (ev) => setTime(e, ev.target),
-          }),
-          h('div', { class: 'muted small' }, changed ? `changed · default ${e.default_duration_minutes}` : 'default')),
-        h('td', { class: 'num' }, e.attempt_count),
-        h('td', null, h('button', {
-          type: 'button', class: 'btn', onclick: () => { pendingDelete = e.id; renderExams(); },
-        }, 'Delete…')));
-      if (pendingDelete !== e.id) return [row];
-      const confirmRow = h('tr', { class: 'confirm-row' }, h('td', { colspan: '4' },
-        h('div', { class: 'confirm-box' },
-          h('span', null, `Delete ${e.id}, its original .md and ${e.attempt_count} attempt${e.attempt_count === 1 ? '' : 's'}? This can't be undone.`),
-          h('span', { class: 'actions' },
-            h('button', { type: 'button', class: 'btn danger', onclick: () => remove(e) }, 'Delete for good'),
-            h('button', { type: 'button', class: 'btn', onclick: () => { pendingDelete = null; renderExams(); } }, 'Cancel')))));
-      return [row, confirmRow];
+    const groups = new Map();
+    hits.forEach((e) => {
+      const key = `${e.maker}-${e.exam}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(e);
+    });
+    const filtering = Boolean(manage.filter.trim());
+    clear(manageGroups, [...groups.keys()].sort().map((key) => {
+      const list = groups.get(key).sort((x, y) => x.number - y.number);
+      return h('details', {
+        class: 'manage-group', open: filtering || manage.open.has(key),
+        ontoggle: (ev) => { if (!filtering) (ev.target.open ? manage.open.add(key) : manage.open.delete(key)); },
+      },
+      h('summary', null, `${groupLabel(list[0].maker, list[0].exam)} (${list.length})`),
+      h('div', { class: 'tablewrap' }, h('table', { class: 'manage' },
+        h('thead', null, h('tr', null, ['Exam', 'Time (min)', ''].map((t) => h('th', null, t)))),
+        h('tbody', null, list.flatMap(examRows)))));
     }));
+  }
+
+  function examRows(e) {
+    const changed = e.duration_minutes !== e.default_duration_minutes;
+    const row = h('tr', null,
+      h('td', null, h('div', { class: 'mono' }, e.id), h('div', { class: 'muted small' }, e.title)),
+      h('td', null,
+        h('input', {
+          type: 'number', min: '1', max: '600', class: 'num-input', id: `time-${e.id}`, value: e.duration_minutes,
+          'aria-label': `Time in minutes for ${e.id}`,
+          onchange: (ev) => setTime(e, ev.target),
+        }),
+        h('div', { class: 'muted small' }, changed ? `changed · default ${e.default_duration_minutes}` : 'default')),
+      h('td', null, h('button', {
+        type: 'button', class: 'btn', onclick: () => { pendingDelete = e.id; renderExams(); },
+      }, 'Delete…')));
+    if (pendingDelete !== e.id) return [row];
+    const confirmRow = h('tr', { class: 'confirm-row' }, h('td', { colspan: '3' },
+      h('div', { class: 'confirm-box' },
+        h('span', null, `Delete ${e.id}, its original .md and ${e.attempt_count} attempt${e.attempt_count === 1 ? '' : 's'}? This can't be undone.`),
+        h('span', { class: 'actions' },
+          h('button', { type: 'button', class: 'btn danger', onclick: () => remove(e) }, 'Delete for good'),
+          h('button', { type: 'button', class: 'btn', onclick: () => { pendingDelete = null; renderExams(); } }, 'Cancel')))));
+    return [row, confirmRow];
   }
 
   async function setTime(exam, input) {
@@ -284,10 +308,17 @@ export function open(ctx, { onChange = () => {} } = {}) {
             + 'The pass mark drives the green tally mark and the domain bars.')),
         h('section', { class: 'set-section' },
           h('h3', null, 'Manage exams'),
-          h('p', { class: 'muted small' }, 'A time change only affects new attempts.'),
-          h('div', { class: 'tablewrap' }, h('table', { class: 'manage' },
-            h('thead', null, h('tr', null, ['Exam', 'Time (min)', 'Attempts', ''].map((t) => h('th', null, t)))),
-            tbody))),
+          h('details', { class: 'manage-box' },
+            h('summary', null, manageCount),
+            h('div', { class: 'manage-filter' },
+              h('input', {
+                type: 'search', id: 'manage-filter', class: 'lib-search', autocomplete: 'off',
+                placeholder: 'Filter: adp, practice 2, /gcp-.*-1/', 'aria-label': 'Filter exams',
+                oninput: (ev) => { manage.filter = ev.target.value; renderExams(); },
+              }),
+              manageShown),
+            h('p', { class: 'muted small' }, 'A time change only affects new attempts.'),
+            manageGroups)),
         h('section', { class: 'set-section' },
           h('h3', null, 'Repairs'),
           h('p', { class: 'muted small' }, 'Exams that failed to load and were sent here. An agent queues fixes; you approve or reject them.'),

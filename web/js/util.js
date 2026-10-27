@@ -106,6 +106,21 @@ export function groupLabel(maker, exam) {
   return `${maker} · ${exam}`.toUpperCase();
 }
 
+// Grep-like exam search shared by the library and Settings: plain text matches the ID, title and
+// group label (ignoring case); /regex/ is tested against the ID and title. A bad regex matches nothing.
+export function examMatcher(query) {
+  const q = query.trim();
+  if (!q) return () => true;
+  const m = q.match(/^\/(.+)\/$/);
+  if (m) {
+    let re;
+    try { re = new RegExp(m[1], 'i'); } catch (e) { return () => false; }
+    return (e) => re.test(e.id) || re.test(e.title);
+  }
+  const s = q.toLowerCase();
+  return (e) => `${e.id} ${e.title} ${groupLabel(e.maker, e.exam)}`.toLowerCase().includes(s);
+}
+
 // Tally marks: one stroke per attempt, every fifth is a diagonal across the previous four.
 // greenIndex is the 0-based position of the green attempt, or -1.
 export function tallySvg(count, greenIndex = -1) {

@@ -1,6 +1,7 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
 import {
   h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste, confirmDialog,
+  examMatcher,
 } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
@@ -245,19 +246,6 @@ async function loadPrompt() {
 
 // ---- board ----------------------------------------------------------------------------
 
-function matcher(query) {
-  const q = query.trim();
-  if (!q) return () => true;
-  const m = q.match(/^\/(.+)\/$/);
-  if (m) {
-    let re;
-    try { re = new RegExp(m[1], 'i'); } catch (e) { return () => false; }
-    return (e) => re.test(e.id) || re.test(e.title);
-  }
-  const s = q.toLowerCase();
-  return (e) => `${e.id} ${e.title} ${groupLabel(e.maker, e.exam)}`.toLowerCase().includes(s);
-}
-
 function renderBoard() {
   const board = state.els.board;
   if (!state.exams.length) {
@@ -265,7 +253,7 @@ function renderBoard() {
       'No exams yet. Drop a file above. The sample in samples/questions-and-answers-sample-demo-1.md is a good first try.'));
     return;
   }
-  const hits = state.exams.filter(matcher(state.query));
+  const hits = state.exams.filter(examMatcher(state.query));
   if (!hits.length) {
     clear(board, h('div', { class: 'empty-view panel' }, `No exams match "${state.query}".`));
     return;

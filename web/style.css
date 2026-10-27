@@ -333,3 +333,12 @@ table.manage { min-width: 600px; }
 .queue-item.delete { border-color: var(--bad); background: var(--bad-soft); }
 .proposal { font-weight: 700; color: var(--bad); }
 .log-queued-delete { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+
+/* Manage exams: collapsible, filterable, grouped */
+.manage-box > summary, .manage-group > summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.manage-box[open] { display: grid; gap: 8px; }
+.manage-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.manage-groups { display: grid; gap: 6px; max-height: 420px; overflow: auto; }
+.manage-group { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 10px; }
+.manage-group[open] > summary { margin-bottom: 6px; }
+.manage-group table.manage { min-width: 420px; }
