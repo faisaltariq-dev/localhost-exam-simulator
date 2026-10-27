@@ -50,7 +50,7 @@ function topbar() {
     oninput: (e) => { state.query = e.target.value; renderBoard(); },
   });
   const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Library view' },
-    ['tableau', 'list'].map((v) => h('button', {
+    ['list', 'tableau'].map((v) => h('button', {
       type: 'button', 'aria-pressed': String(state.view === v), dataset: { view: v },
       onclick: () => setView(v),
     }, v === 'tableau' ? 'Tableau' : 'List')));
