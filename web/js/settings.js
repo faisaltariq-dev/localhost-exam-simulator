@@ -43,16 +43,7 @@ export function open(ctx, { onChange = () => {} } = {}) {
     for (const [key, el] of Object.entries(segments)) {
       el.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(ctx.settings[key] === b.dataset.value)));
     }
-    passInput.value = ctx.settings.pass_mark_percent;
   }
-  const passInput = h('input', {
-    type: 'number', id: 'pass-mark', min: '1', max: '100', class: 'num-input',
-    onchange: (e) => {
-      const v = Number(e.target.value);
-      if (Number.isInteger(v) && v >= 1 && v <= 100) save({ pass_mark_percent: v });
-      else e.target.value = ctx.settings.pass_mark_percent;
-    },
-  });
 
   // -- manage exams
 
@@ -324,11 +315,9 @@ export function open(ctx, { onChange = () => {} } = {}) {
           h('h3', null, 'General'),
           h('div', { class: 'set-row' },
             h('span', { class: 'set-label' }, 'Theme'), seg('theme', [['light', 'Light'], ['dark', 'Dark']]),
-            h('span', { class: 'set-label' }, 'Style'), seg('style', [['classic', 'Classic'], ['modern', 'Modern']]),
-            h('label', { class: 'set-label', for: 'pass-mark' }, 'Pass mark'), h('span', null, passInput, ' %')),
+            h('span', { class: 'set-label' }, 'Style'), seg('style', [['classic', 'Classic'], ['modern', 'Modern']])),
           h('p', { class: 'muted small' },
-            'Classic looks like a test-centre client; Modern keeps the same layout with a lighter touch. '
-            + 'The pass mark drives the green tally mark and the domain bars.')),
+            'Classic looks like a test-centre client; Modern keeps the same layout with a lighter touch.')),
         h('section', { class: 'set-section' },
           h('h3', null, 'Manage exams'),
           h('details', { class: 'manage-box' },
