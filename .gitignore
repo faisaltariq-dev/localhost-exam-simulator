@@ -10,5 +10,8 @@ __pycache__/
 .DS_Store
 *.avif
 
-# local scratch folder: anything inside gitignore/ stays out of git
-gitignore/
+# local scratch folder: anything inside gitignorestuff/ stays out of git
+gitignorestuff/
+
+# local agent instructions
+CLAUDE.md
