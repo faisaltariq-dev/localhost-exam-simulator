@@ -306,3 +306,6 @@ table.manage { min-width: 600px; }
 .staged-name { font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
 .unstage { border: 0; background: none; font-size: 16px; line-height: 1; color: var(--muted); padding: 2px 6px; }
 .unstage:hover { color: var(--bad); }
+
+/* Send-to-Repairs dialog */
+.repair-ask { display: grid; gap: 6px; }

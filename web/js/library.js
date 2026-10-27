@@ -1,5 +1,7 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
-import { h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste } from './util.js';
+import {
+  h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste, confirmDialog,
+} from './util.js';
 
 const VIEW_KEY = 'examsim.view';
 const SELECTED_KEY = 'examsim.selected';
@@ -32,11 +34,12 @@ export function cleanup() {
 
 async function reload() {
   if (!state) return;
-  const [exams, inbox] = await Promise.all([state.ctx.api.listExams(), state.ctx.api.inboxStatus()]);
+  const [exams, repairs] = await Promise.all([state.ctx.api.listExams(), state.ctx.api.repairs()]);
   if (!state) return;
   state.exams = exams;
-  state.els.settingsBtn.textContent = inbox.waiting ? `⚙ Settings · ${inbox.waiting}` : '⚙ Settings';
-  state.els.settingsBtn.title = inbox.waiting ? `${inbox.waiting} file(s) waiting in the parse inbox` : '';
+  const open = repairs.inbox.length + repairs.queue.length;
+  state.els.settingsBtn.textContent = open ? `⚙ Settings · ${open}` : '⚙ Settings';
+  state.els.settingsBtn.title = open ? `Repairs: ${repairs.inbox.length} in the inbox, ${repairs.queue.length} in the queue` : '';
   if (!state.exams.some((e) => e.id === state.selected)) state.selected = state.exams.length ? state.exams[0].id : '';
   renderBoard();
   renderDetail();
@@ -150,18 +153,42 @@ async function loadExam(name, text) {
   try {
     loaded = await state.ctx.api.load(text, name === 'Pasted text' ? '' : name);
   } catch (err) {
-    showNotice('bad', [
-      h('div', null, h('strong', null, `${name} was not loaded:`),
-        h('ul', null, (err.errors || [err.message]).map((e) => h('li', null, e)))),
-      h('div', { class: 'inbox-hint' },
-        "If this file looks right to you, drop it in Settings → Files that won't import, and an agent can fix the parser. ",
-        h('button', { class: 'btn', type: 'button', onclick: openSettings }, 'Open Settings'))]);
-    return false;
+    if (err.data.duplicate === 'identical') {
+      showNotice('ok', err.message);
+      return true;
+    }
+    showNotice('bad', h('div', null, h('strong', null, `${name} was not loaded:`),
+      h('ul', null, (err.errors || [err.message]).map((e) => h('li', null, e)))));
+    return offerRepairs(text);
   }
   showNotice('ok', `Loaded ${loaded.title} (${loaded.question_count} questions, ${loaded.domain_count} domains, ${loaded.duration_minutes} min).`);
   state.selected = loaded.id;
   await reload();
   return true;
+}
+
+// After a failed load: ask whether to send the exam to Repairs, with an optional reason.
+async function offerRepairs(text) {
+  const reason = h('textarea', { id: 'repair-reason', class: 'paste-area', rows: '2', placeholder: 'Why? (optional)' });
+  const yes = await confirmDialog({
+    title: 'Send this to Repairs?',
+    body: h('div', { class: 'repair-ask' },
+      h('p', null, 'An agent can look at it and queue a fix for your approval.'),
+      h('label', { class: 'muted small', for: 'repair-reason' }, 'Why? (optional)'), reason),
+    confirmLabel: 'Send to Repairs', cancelLabel: 'No',
+  });
+  if (!yes || !state) return false;
+  try {
+    const sent = await state.ctx.api.sendToRepairs(text, reason.value);
+    showNotice('ok', h('div', { class: 'inbox-hint' },
+      `Saved as #${String(sent.id).padStart(3, '0')}. See Settings → Repairs.`,
+      h('button', { class: 'btn', type: 'button', onclick: openSettings }, 'Open Settings')));
+    await reload();
+    return true;
+  } catch (err) {
+    showNotice('bad', `Could not send it to Repairs: ${err.message}`);
+    return false;
+  }
 }
 
 function showNotice(kind, content) {

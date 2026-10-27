@@ -6,6 +6,7 @@ export class ApiError extends Error {
     super(errors.join('\n'));
     this.status = status;
     this.errors = errors;
+    this.data = data && typeof data === 'object' ? data : {};
   }
 }
 
@@ -42,5 +43,7 @@ export const api = {
   getPrompt: () => request('GET', '/prompt-for-exam.md'),
   load: (text, filename = '') => request('POST', `/api/upload?filename=${enc(filename)}`, text, true),
   inboxStatus: () => request('GET', '/api/inbox'),
+  repairs: () => request('GET', '/api/repairs'),
+  sendToRepairs: (text, reason) => request('POST', '/api/repairs', { text, reason }),
   sendToInbox: (text) => request('POST', '/api/inbox', text, true),
 };
