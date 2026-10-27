@@ -1,5 +1,5 @@
 // Settings panel: Repairs, theme × style, pass mark, and Manage exams (time, delete).
-import { h, clear, groupLabel, examMatcher } from './util.js';
+import { h, clear, groupLabel, examMatcher, copyButton, selectText } from './util.js';
 
 const AGENT_LINE = 'Read .FIXPARSE.MD in this folder and work through the Repairs inbox.';
 
@@ -276,23 +276,7 @@ export function open(ctx, { onChange = () => {} } = {}) {
   }
 
   const agentCode = h('code', { class: 'agent-text' }, AGENT_LINE);
-  const agentCopy = h('button', {
-    class: 'btn', type: 'button',
-    onclick: async () => {
-      try {
-        await navigator.clipboard.writeText(AGENT_LINE);
-        agentCopy.textContent = 'Copied';
-      } catch (err) {
-        const range = document.createRange();
-        range.selectNodeContents(agentCode);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        agentCopy.textContent = 'Selected · press ⌘C';
-      }
-      setTimeout(() => { agentCopy.textContent = 'Copy'; }, 1800);
-    },
-  }, 'Copy');
+  const agentCopy = copyButton(() => AGENT_LINE, () => selectText(agentCode));
 
   // -- panel
 

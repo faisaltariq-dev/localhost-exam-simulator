@@ -1,7 +1,7 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
 import {
   h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste, confirmDialog,
-  examMatcher,
+  examMatcher, copyButton, selectText,
 } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
@@ -203,7 +203,7 @@ function showNotice(kind, content) {
 
 function promptBlock() {
   const pre = h('pre', { class: 'prompt-text' }, 'Loading…');
-  const copy = h('button', { class: 'btn copy', type: 'button' }, 'Copy');
+  const copy = copyButton(() => state.promptText, () => { details.open = true; selectText(pre); });
   const details = h('details', { class: 'prompt panel' },
     h('summary', null,
       h('span', { class: 'caret', 'aria-hidden': 'true' }, '▶'),
@@ -211,26 +211,6 @@ function promptBlock() {
       h('span', { class: 'muted small prompt-desc' }, 'Format spec to give any AI with your exam request'),
       copy),
     pre);
-  copy.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const label = (text) => {
-      copy.textContent = text;
-      setTimeout(() => { copy.textContent = 'Copy'; }, 1800);
-    };
-    try {
-      await navigator.clipboard.writeText(state.promptText);
-      label('Copied');
-    } catch (err) {
-      details.open = true;
-      const range = document.createRange();
-      range.selectNodeContents(pre);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      label('Selected · press ⌘C');
-    }
-  });
   state.els.promptPre = pre;
   return details;
 }

@@ -145,6 +145,61 @@ export function tallySvg(count, greenIndex = -1) {
   return svg;
 }
 
+// Small line icons drawn as inline SVG (24×24 grid, stroked with the current text colour).
+const ICONS = {
+  copy: [['rect', { x: 9, y: 9, width: 12, height: 12, rx: 2 }],
+    ['path', { d: 'M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5' }]],
+  check: [['path', { d: 'M20 6 9 17l-5-5' }]],
+};
+
+export function icon(name) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  const attrs = { viewBox: '0 0 24 24', width: 16, height: 16, fill: 'none', stroke: 'currentColor',
+    'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', class: 'icon', 'aria-hidden': 'true' };
+  Object.entries(attrs).forEach(([k, v]) => svg.setAttribute(k, v));
+  ICONS[name].forEach(([tag, a]) => {
+    const el = document.createElementNS(NS, tag);
+    Object.entries(a).forEach(([k, v]) => el.setAttribute(k, v));
+    svg.append(el);
+  });
+  return svg;
+}
+
+// An icon-only copy button. Shows a check when copied; if the clipboard is blocked, it runs
+// onBlocked (which should select the text) and hints at ⌘C instead.
+export function copyButton(getText, onBlocked) {
+  const btn = h('button', { class: 'btn icon-btn', type: 'button', title: 'Copy', 'aria-label': 'Copy' }, icon('copy'));
+  const reset = () => setTimeout(() => {
+    clear(btn, icon('copy'));
+    btn.title = 'Copy';
+  }, 1600);
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(getText());
+      clear(btn, icon('check'));
+      btn.title = 'Copied';
+    } catch (err) {
+      onBlocked();
+      clear(btn, icon('copy'), h('span', { class: 'small' }, '⌘C'));
+      btn.title = 'Selected: press ⌘C';
+    }
+    reset();
+  });
+  return btn;
+}
+
+// Selects all text inside el (used when the clipboard API is refused).
+export function selectText(el) {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 // Makes el accept dropped files. Crossing a child element fires dragleave on the parent, so a
 // depth counter keeps the highlight steady instead of flickering on and off.
 export function dropTarget(el, onFiles) {

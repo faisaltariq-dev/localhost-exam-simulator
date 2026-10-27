@@ -348,3 +348,7 @@ table.manage { min-width: 600px; }
 .manage-group { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 10px; }
 .manage-group[open] > summary { margin-bottom: 6px; }
 .manage-group table.manage { min-width: 420px; }
+
+/* Line icons */
+.icon { display: block; flex: none; }
+.icon-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; }
