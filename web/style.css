@@ -292,12 +292,12 @@ table.manage { min-width: 600px; }
    spans the top row, the File | Paste toggle sits bottom-left and the active view's Load bottom-right. */
 .intake-box { grid-template-columns: auto 1fr; align-items: center; }
 .intake-box > .file-box, .intake-box > .paste-box { display: contents; }
-.intake-box .dropzone, .intake-box .paste-area, .intake-box .paste-rendered { grid-column: 1 / -1; grid-row: 1; }
+.intake-box .dropzone, .intake-box .paste-area { grid-column: 1 / -1; grid-row: 1; }
 .intake-box .paste-actions { grid-column: 2; grid-row: 2; }
 .intake-box > .mode-toggle { grid-column: 1; grid-row: 2; justify-self: start; }
 .paste-box { display: grid; gap: 8px; }
 .paste-area { width: 100%; min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.45; }
-.paste-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+.paste-actions { display: flex; justify-content: flex-end; }
 
 /* Agent line (settings) */
 .agent-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px;
@@ -370,4 +370,3 @@ table.manage { min-width: 600px; }
 .prompt-rendered hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
 .prompt-rendered pre { margin: 6px 0; }
 .prompt-render { margin-right: 4px; }
-.intake .paste-rendered { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }

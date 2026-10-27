@@ -323,8 +323,7 @@ export function dropTarget(el, onFiles) {
 }
 
 // A File | Paste switch above two alternative views (only one is shown at a time).
-// onMode(mode) runs after each switch, so a view can reset itself when it is hidden.
-export function fileOrPaste(fileView, pasteView, label, onMode = () => {}) {
+export function fileOrPaste(fileView, pasteView, label) {
   const buttons = [['file', 'File'], ['paste', 'Paste']].map(([mode, text]) => h('button', {
     type: 'button', dataset: { mode }, onclick: () => show(mode),
   }, text));
@@ -332,7 +331,6 @@ export function fileOrPaste(fileView, pasteView, label, onMode = () => {}) {
     fileView.hidden = mode !== 'file';
     pasteView.hidden = mode !== 'paste';
     buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    onMode(mode);
   }
   show('file');
   return h('div', { class: 'intake-box' },
