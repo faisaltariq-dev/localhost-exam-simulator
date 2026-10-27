@@ -287,7 +287,13 @@ table.manage { min-width: 600px; }
 
 /* File | Paste intake */
 .intake-box { display: grid; gap: 8px; min-width: 0; }
-.mode-toggle { justify-self: end; }  /* same right edge as the Load button */
+/* Toggle and Load share the bottom row: the views' wrappers dissolve into this grid, so the box
+   spans the top row, the File | Paste toggle sits bottom-left and the active view's Load bottom-right. */
+.intake-box { grid-template-columns: auto 1fr; align-items: center; }
+.intake-box > .file-box, .intake-box > .paste-box { display: contents; }
+.intake-box .dropzone, .intake-box .paste-area { grid-column: 1 / -1; grid-row: 1; }
+.intake-box .paste-actions { grid-column: 2; grid-row: 2; }
+.intake-box > .mode-toggle { grid-column: 1; grid-row: 2; justify-self: start; }
 .paste-box { display: grid; gap: 8px; }
 .paste-area { width: 100%; min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.45; }
 .paste-actions { display: flex; justify-content: flex-end; }
