@@ -12,7 +12,7 @@ export async function render(root, ctx, examId, number) {
     clear(root, bar, h('div', { class: 'empty-view' }, `Attempt ${number} was not found.`));
     return;
   }
-  const pass = ctx.settings.pass_mark_percent;
+  const pass = exam.pass_mark_percent ?? ctx.settings.pass_mark_percent;
   clear(root, bar, h('div', { class: 'page results' },
     header(ctx, exam, attempt, data.green_attempt === attempt.number, pass),
     domainBreakdown(exam, attempt, pass),

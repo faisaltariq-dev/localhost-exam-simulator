@@ -86,7 +86,7 @@ export function open(ctx, { onChange = () => {} } = {}) {
       },
       h('summary', null, `${groupLabel(list[0].maker, list[0].exam)} (${list.length})`),
       h('div', { class: 'tablewrap' }, h('table', { class: 'manage' },
-        h('thead', null, h('tr', null, ['Exam', 'Time (min)', ''].map((t) => h('th', null, t)))),
+        h('thead', null, h('tr', null, ['Exam', 'Time (min)', 'Pass %', ''].map((t) => h('th', null, t)))),
         h('tbody', null, list.flatMap(examRows)))));
     }));
   }
@@ -102,11 +102,19 @@ export function open(ctx, { onChange = () => {} } = {}) {
           onchange: (ev) => setTime(e, ev.target),
         }),
         h('div', { class: 'muted small' }, changed ? `changed · default ${e.default_duration_minutes}` : 'default')),
+      h('td', null,
+        h('input', {
+          type: 'number', min: '1', max: '100', class: 'num-input', id: `pass-${e.id}`, value: e.pass_mark_percent,
+          'aria-label': `Pass mark in percent for ${e.id}`,
+          onchange: (ev) => setPass(e, ev.target),
+        }),
+        h('div', { class: 'muted small' },
+          e.pass_mark_percent !== e.default_pass_mark_percent ? `changed · default ${e.default_pass_mark_percent}` : 'default')),
       h('td', null, h('button', {
         type: 'button', class: 'btn', onclick: () => { pendingDelete = e.id; renderExams(); },
       }, 'Delete…')));
     if (pendingDelete !== e.id) return [row];
-    const confirmRow = h('tr', { class: 'confirm-row' }, h('td', { colspan: '3' },
+    const confirmRow = h('tr', { class: 'confirm-row' }, h('td', { colspan: '4' },
       h('div', { class: 'confirm-box' },
         h('span', null, `Delete ${e.id}, its original .md and ${e.attempt_count} attempt${e.attempt_count === 1 ? '' : 's'}? This can't be undone.`),
         h('span', { class: 'actions' },
@@ -128,12 +136,27 @@ export function open(ctx, { onChange = () => {} } = {}) {
     renderExams();
   }
 
+  async function setPass(exam, input) {
+    const v = Number(input.value);
+    if (!Number.isInteger(v) || v < 1 || v > 100) {
+      input.value = exam.pass_mark_percent;
+      return;
+    }
+    const overrides = { ...(ctx.settings.pass_mark_overrides || {}) };
+    if (v === ctx.settings.pass_mark_percent) delete overrides[exam.id];
+    else overrides[exam.id] = v;
+    await save({ pass_mark_overrides: overrides });
+    renderExams();
+  }
+
   async function remove(exam) {
     try {
       await ctx.api.deleteExam(exam.id);
       pendingDelete = null;
       ctx.settings.duration_overrides = { ...ctx.settings.duration_overrides };
       delete ctx.settings.duration_overrides[exam.id];
+      ctx.settings.pass_mark_overrides = { ...(ctx.settings.pass_mark_overrides || {}) };
+      delete ctx.settings.pass_mark_overrides[exam.id];
       await onChange();
       renderExams();
     } catch (err) {

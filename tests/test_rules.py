@@ -151,16 +151,35 @@ class StoreTest(unittest.TestCase):
             self.store.update_settings({"style": "fancy", "pass_mark_percent": 0})
         self.assertEqual(len(cm.exception.errors), 2)
 
+    def test_pass_mark_per_exam(self):
+        self.import_sample()
+        self.store.add_attempt("sample-demo-1", {"duration_minutes": 10, "elapsed_seconds": 60,
+                                                 "answers": {"1": "B", "2": "B", "3": "A", "4": "C", "5": "D"}})  # 83.3%
+        self.assertEqual(self.store.exam_summaries()[0]["green_attempt"], 1)
+        s = self.store.update_settings({"pass_mark_overrides": {"sample-demo-1": 90}})
+        self.assertEqual(s["pass_mark_overrides"], {"sample-demo-1": 90})
+        summary = self.store.exam_summaries()[0]
+        self.assertEqual((summary["pass_mark_percent"], summary["default_pass_mark_percent"]), (90, 70))
+        self.assertIsNone(summary["green_attempt"])  # 83.3% is below this exam's own pass mark
+        self.assertEqual(self.store.exam_for_client("sample-demo-1")["pass_mark_percent"], 90)
+        self.assertEqual(self.store.attempts_for_client("sample-demo-1")["pass_mark_percent"], 90)
+        s = self.store.update_settings({"pass_mark_overrides": {"sample-demo-1": 70}})  # equal to global: dropped
+        self.assertEqual(s["pass_mark_overrides"], {})
+        with self.assertRaises(StoreError):
+            self.store.update_settings({"pass_mark_overrides": {"sample-demo-1": 101}})
+        self.store.update_settings({"pass_mark_overrides": {"sample-demo-1": 50, "x-y-1": 50}})
+        self.assertEqual(self.store.load_settings()["pass_mark_overrides"], {"sample-demo-1": 50})  # unknown exam ignored
+
     def test_delete_removes_files_and_override(self):
         self.import_sample()
-        self.store.update_settings({"duration_overrides": {"sample-demo-1": 5}})
+        self.store.update_settings({"duration_overrides": {"sample-demo-1": 5}, "pass_mark_overrides": {"sample-demo-1": 80}})
         self.store.add_attempt("sample-demo-1", {"duration_minutes": 5, "elapsed_seconds": 1, "answers": {}})
         self.store.delete_exam("sample-demo-1")
         self.assertEqual(self.store.exam_ids(), [])
         self.assertEqual(os.listdir(self.store.raw_dir), [])
         self.assertEqual(os.listdir(self.store.attempts_dir), [])
         s = self.store.load_settings()
-        self.assertEqual(s["duration_overrides"], {})
+        self.assertEqual((s["duration_overrides"], s["pass_mark_overrides"]), ({}, {}))
 
     def test_identical_duplicate_is_reported_as_already_there(self):
         self.import_sample()

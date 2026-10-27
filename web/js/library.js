@@ -338,7 +338,7 @@ async function renderDetail() {
       h('div', null,
         h('div', { class: 'card-label' }, `${groupLabel(exam.maker, exam.exam)} · ${exam.id}`),
         h('h2', null, exam.title),
-        h('div', { class: 'muted small' }, `${exam.question_count} questions · ${exam.domain_count} domains · ${exam.duration_minutes} min${timeNote}`)),
+        h('div', { class: 'muted small' }, `${exam.question_count} questions · ${exam.domain_count} domains · ${exam.duration_minutes} min${timeNote} · pass ${exam.pass_mark_percent}%`)),
       h('button', { class: 'btn primary', type: 'button', onclick: go }, data.attempts.length ? 'Retake' : 'Start')),
     data.attempts.length
       ? h('div', { class: 'tablewrap' }, h('table', null,

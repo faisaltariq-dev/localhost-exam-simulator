@@ -26,6 +26,7 @@ DEFAULT_SETTINGS = {
     "style": "classic",
     "pass_mark_percent": 70,
     "duration_overrides": {},
+    "pass_mark_overrides": {},
 }
 
 
@@ -115,6 +116,10 @@ def parse_log(text):
     return entries
 
 
+def effective_pass_mark(exam_id, settings):
+    return settings.get("pass_mark_overrides", {}).get(exam_id, settings["pass_mark_percent"])
+
+
 def effective_duration(exam, settings):
     return settings.get("duration_overrides", {}).get(exam["id"], exam["duration_minutes"])
 
@@ -200,6 +205,23 @@ class Store:
                             if exam and exam["duration_minutes"] != minutes:
                                 clean[exam_id] = minutes
                 settings["duration_overrides"] = clean
+            if "pass_mark_overrides" in data:
+                overrides = data["pass_mark_overrides"]
+                clean = {}
+                if not isinstance(overrides, dict):
+                    errors.append("pass_mark_overrides must be an object")
+                else:
+                    for exam_id, pct in overrides.items():
+                        if not converter.EXAM_ID_RE.match(exam_id):
+                            errors.append("pass_mark_overrides: bad exam id %s" % exam_id)
+                        elif not (isinstance(pct, int) and not isinstance(pct, bool) and 1 <= pct <= 100):
+                            errors.append("pass_mark_overrides: %s must be 1–100" % exam_id)
+                        elif os.path.exists(self.exam_path(exam_id)):
+                            clean[exam_id] = pct
+                settings["pass_mark_overrides"] = clean
+            # An override equal to the global pass mark is no override at all.
+            settings["pass_mark_overrides"] = {k: v for k, v in settings["pass_mark_overrides"].items()
+                                               if v != settings["pass_mark_percent"]}
             if errors:
                 raise StoreError(400, errors=errors)
             write_json_atomic(self.settings_path, settings)
@@ -368,6 +390,8 @@ class Store:
         exam = dict(exam)
         exam["default_duration_minutes"] = exam["duration_minutes"]
         exam["duration_minutes"] = effective_duration(exam, settings)
+        exam["pass_mark_percent"] = effective_pass_mark(exam_id, settings)
+        exam["default_pass_mark_percent"] = settings["pass_mark_percent"]
         return exam
 
     def import_exam(self, filename, text):
@@ -414,6 +438,7 @@ class Store:
                     pass
             settings = self.load_settings()
             settings["duration_overrides"].pop(exam_id, None)
+            settings["pass_mark_overrides"].pop(exam_id, None)
             write_json_atomic(self.settings_path, settings)
 
     def exam_summaries(self):
@@ -437,7 +462,9 @@ class Store:
                 "attempt_count": len(attempts),
                 "attempts_brief": [{"number": a["number"], "score_percent": a["score_percent"],
                                     "paused": a["paused"], "overtime": a["overtime"]} for a in attempts],
-                "green_attempt": green_attempt(attempts, settings["pass_mark_percent"]),
+                "pass_mark_percent": effective_pass_mark(exam_id, settings),
+                "default_pass_mark_percent": settings["pass_mark_percent"],
+                "green_attempt": green_attempt(attempts, effective_pass_mark(exam_id, settings)),
             })
         return out
 
@@ -450,8 +477,9 @@ class Store:
     def attempts_for_client(self, exam_id):
         self.load_exam(exam_id)
         attempts = self.load_attempts(exam_id)
-        return {"attempts": attempts,
-                "green_attempt": green_attempt(attempts, self.load_settings()["pass_mark_percent"])}
+        pass_mark = effective_pass_mark(exam_id, self.load_settings())
+        return {"attempts": attempts, "pass_mark_percent": pass_mark,
+                "green_attempt": green_attempt(attempts, pass_mark)}
 
     def _save_attempts(self, exam_id, attempts):
         write_json_atomic(self.attempts_path(exam_id),
