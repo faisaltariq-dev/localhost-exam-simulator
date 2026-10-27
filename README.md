@@ -15,7 +15,7 @@ Then open http://localhost:8000. Stop it with `Ctrl+C`. Python 3.9+ is all you n
 **Get an exam.**
 1. In the library, press **Copy** on the `prompt-for-exam.md` block.
 2. Ask any AI for an exam and paste the prompt with your request, e.g. *"GCP ADP, extra difficult, at least one very close distractor per question. Follow this prompt-for-exam.md for the exact output file structure."*
-3. Import the reply: drop the saved `.md` file onto the library box, or switch it to **Paste** and paste the text. The file name doesn't matter. The header at the top of the exam decides what it is and which column it goes in. To try it first, use `samples/questions-and-answers-sample-demo-1.md`.
+3. Load the reply: drop or choose the saved `.md` file in the library box, or switch it to **Paste** and paste the text, then press **Load**. The file name doesn't matter. The header at the top of the exam decides what it is and which column it goes in. To try it first, use `samples/questions-and-answers-sample-demo-1.md`.
 
 **Take it.** Pick the exam in the library and press **Start** (later **Retake**).
 - Answer with a click, A–D or 1–4. Move between questions with ←/→.
@@ -32,10 +32,11 @@ Then open http://localhost:8000. Stop it with `Ctrl+C`. Python 3.9+ is all you n
 - The pass mark
 - Change an exam's time, or delete it
 
-**When a file won't import.** The library lists every reason. If the file looks right to you anyway:
-1. Open **Settings → Files that won't import**, then drop the file or paste the text. It's saved as `parse-inbox/inbox-001.md`, `inbox-002.md`, and so on.
-2. Start any coding agent in this folder and give it the line shown there, which has a **Copy** button: *"Read .FIXPARSE.MD in this folder and fix the files waiting in the parse inbox."*
-3. Fixed files end up in `parse-inbox/ready/`. Import them from the library.
+**When an exam won't load.** The library lists every reason and asks whether to send it to **Repairs**. You can add an optional note on why.
+1. Each request gets its own numbered folder (`repairs/001/`, `repairs/002/` …), and `repairs/log.md` keeps a running history of every step.
+2. Start any coding agent in this folder and give it the line from **Settings → Repairs**, which has a **Copy** button: *"Read .FIXPARSE.MD in this folder and work through the Repairs inbox."* The agent fixes what's easy and queues it with a short note. When something is odd, it asks you or explains in the log.
+3. In **Settings → Repairs**, **Approve** loads a queued fix and **Reject** sends it back with an optional reason. You can also add a note to any inbox item. The log stays collapsed to a short status unless you open it.
+4. Nothing in `repairs/` is ever deleted by the app. Remove folders by hand when you're done with them.
 
 **Check a file without importing it:** `python3 converter.py <file.md>`
 
@@ -60,28 +61,29 @@ flowchart TB
     drop["Library box<br/>drop or paste"]
     lib["Library<br/>tableau · tallies"]
     exam["Exam → Results<br/>by domain"]
-    sink["Settings<br/>files that won't import"]
+    sink["Settings · Repairs<br/>approve / reject"]
   end
   subgraph Python["Python · server.py"]
     direction LR
     check["Check & convert<br/>converter.py"]
     list["Exam list"]
     score["Scoring<br/>store.py"]
-    save["Save to inbox"]
+    save["Repairs<br/>store.py"]
   end
   subgraph Disk["Disk · project folder"]
     direction LR
     exams["exams/<br/>raw .md + .json"]
     data["data/<br/>attempts · settings"]
-    inbox["parse-inbox/"]
+    inbox["repairs/<br/>numbered folders + log.md"]
   end
   file -->|drop / paste| drop --> check
   check -->|valid| exams
   check -.->|rejected, every reason listed| drop
   exams --> list --> lib -->|start| exam
   exam <-->|submit / load| score <--> data
-  drop -.->|looks right? send it| sink --> save --> inbox
-  agent -.->|fixes converter.py or the file| inbox
+  drop -.->|send to Repairs?| save --> inbox
+  agent -.->|writes fixed.md + a log line| inbox
+  sink <-->|approve loads the fix| save
 ```
 
 ### The exam file
@@ -140,11 +142,11 @@ Explanation: Why C is right, and why A, B and D are wrong.
 |---|---|
 | `run.txt` | The one command that starts the app |
 | `prompt-for-exam.md` | The format spec you give to the exam-writing AI |
-| `.FIXPARSE.MD` | Instructions for any coding agent fixing files in the parse inbox |
+| `.FIXPARSE.MD` | Instructions for any coding agent working through Repairs |
 | `converter.py` | Parses and validates exam markdown |
-| `store.py` | Storage, scoring, domain scores, the green-tally rule, the parse inbox |
+| `store.py` | Storage, scoring, domain scores, the green-tally rule, Repairs and its log |
 | `server.py` | Local HTTP server and JSON API (127.0.0.1 only) |
 | `web/` | The single-page app: `js/library.js`, `exam.js`, `results.js`, `settings.js` |
 | `samples/`, `tests/` | Example exams (good and broken) and the unit tests |
 | `reproduciable-plan-prompt-for-localhostexamsimulatorparser.md` | The original design, frozen, to hand to other builders |
-| `exams/`, `data/`, `parse-inbox/` | Your exams, attempts, settings and rejected files (not tracked by git) |
+| `exams/`, `data/`, `repairs/` | Your exams, attempts, settings and repair requests (not tracked by git) |
