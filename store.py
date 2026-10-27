@@ -14,8 +14,6 @@ import converter
 
 SCHEMA_VERSION = 1
 MAX_NOTE_CHARS = 20000
-INBOX_NAME_RE = re.compile(r"^inbox-(\d+)\.md$")
-
 # Repairs log: one line per event, appended by the app (owner actions) or by an agent.
 #   2026-10-27 21:04 · #003 · owner · sent · pasted from Gemini, Q4 looked off
 LOG_LINE_RE = re.compile(r"^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*·\s*#(\d+)\s*·\s*([a-z]+)\s*·\s*([a-z-]+)\s*(?:·\s*(.*))?$")
@@ -130,13 +128,10 @@ class Store:
         self.data_dir = os.path.join(root, "data")
         self.attempts_dir = os.path.join(self.data_dir, "attempts")
         self.settings_path = os.path.join(self.data_dir, "settings.json")
-        # Files the library rejected wait here for an agent (see .FIXPARSE.MD); fixed ones go to ready/.
-        self.inbox_dir = os.path.join(root, "parse-inbox")
-        self.ready_dir = os.path.join(self.inbox_dir, "ready")
         # Exams that failed to load, one numbered folder each, plus an append-only log (see .FIXPARSE.MD).
         self.repairs_dir = os.path.join(root, "repairs")
         self.repairs_log = os.path.join(self.repairs_dir, "log.md")
-        for d in (self.raw_dir, self.attempts_dir, self.inbox_dir, self.repairs_dir):
+        for d in (self.raw_dir, self.attempts_dir, self.repairs_dir):
             os.makedirs(d, exist_ok=True)
         self._lock = threading.RLock()
 
@@ -208,35 +203,6 @@ class Store:
                 raise StoreError(400, errors=errors)
             write_json_atomic(self.settings_path, settings)
             return settings
-
-    # -- parse inbox
-
-    def _inbox_files(self, folder):
-        try:
-            return [n for n in os.listdir(folder) if n.endswith(".md") and os.path.isfile(os.path.join(folder, n))]
-        except FileNotFoundError:
-            return []
-
-    def inbox_status(self):
-        return {"waiting": len(self._inbox_files(self.inbox_dir)), "ready": len(self._inbox_files(self.ready_dir)),
-                "folder": "parse-inbox"}
-
-    def add_to_inbox(self, text):
-        """Save a rejected exam as inbox-NNN.md. Valid exams are refused: they belong in the library."""
-        if not text.strip():
-            raise StoreError(400, "Nothing to save: the file or text is empty.")
-        result = converter.parse_exam("", text)
-        if result.ok:
-            raise StoreError(400, "This exam is valid. Import it in the library instead.")
-        with self._lock:
-            used = [int(m.group(1)) for folder in (self.inbox_dir, self.ready_dir)
-                    for m in map(INBOX_NAME_RE.match, self._inbox_files(folder)) if m]
-            name = "inbox-%03d.md" % (max(used, default=0) + 1)
-            with open(os.path.join(self.inbox_dir, name), "x", encoding="utf-8", newline="") as f:
-                f.write(text)
-        status = self.inbox_status()
-        status.update({"file": name, "errors": result.errors})
-        return status
 
     # -- repairs
 

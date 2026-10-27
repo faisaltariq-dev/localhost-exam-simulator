@@ -292,8 +292,7 @@ table.manage { min-width: 600px; }
 .paste-area { width: 100%; min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.45; }
 .paste-actions { display: flex; justify-content: flex-end; }
 
-/* Parse inbox (settings) */
-.inbox-count { font-weight: 700; }
+/* Agent line (settings) */
 .agent-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px;
   background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .agent-text { flex: 1 1 260px; background: none; padding: 0; overflow-wrap: anywhere; }
@@ -309,3 +308,22 @@ table.manage { min-width: 600px; }
 
 /* Send-to-Repairs dialog */
 .repair-ask { display: grid; gap: 6px; }
+
+/* Repairs (settings) */
+.repairs { display: grid; gap: 10px; }
+.repairs-counts { font-weight: 700; }
+.repairs-status { margin: 0; }
+.queue-list, .log-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.queue-item { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
+.reject-box { display: grid; gap: 8px; }
+.bad-text { color: var(--bad); }
+.note-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.note-row select { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 8px; }
+.note-input { flex: 1 1 220px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 10px; }
+.repairs-log summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.repairs-log[open] { display: grid; gap: 8px; }
+.log-lines { gap: 4px; max-height: 280px; overflow: auto; font-size: 13px; }
+.log-line { padding: 4px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.log-line.odd { color: var(--muted); font-style: italic; }
+.log-queued, .log-approved { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.log-declined, .log-rejected, .log-failed { background: var(--bad-soft); color: var(--bad); border-color: transparent; }

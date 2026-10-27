@@ -165,18 +165,6 @@ class Handler(BaseHTTPRequestHandler):
             raise StoreError(400, "Body must be {\"revised\": true|false}")
         self.send_json(200, self.store.set_revised(exam_id, int(number), body["revised"]))
 
-    @route("GET", r"/api/inbox")
-    def get_inbox(self):
-        self.send_json(200, self.store.inbox_status())
-
-    @route("POST", r"/api/inbox")
-    def post_inbox(self):
-        try:
-            text = self.read_body().decode("utf-8")
-        except UnicodeDecodeError:
-            raise StoreError(400, "The file must be UTF-8 text")
-        self.send_json(201, self.store.add_to_inbox(text))
-
     @route("GET", r"/api/repairs")
     def get_repairs(self):
         self.send_json(200, self.store.repairs_status())

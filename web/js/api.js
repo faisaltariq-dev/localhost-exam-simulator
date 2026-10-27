@@ -42,8 +42,9 @@ export const api = {
   putSettings: (settings) => request('PUT', '/api/settings', settings),
   getPrompt: () => request('GET', '/prompt-for-exam.md'),
   load: (text, filename = '') => request('POST', `/api/upload?filename=${enc(filename)}`, text, true),
-  inboxStatus: () => request('GET', '/api/inbox'),
   repairs: () => request('GET', '/api/repairs'),
   sendToRepairs: (text, reason) => request('POST', '/api/repairs', { text, reason }),
-  sendToInbox: (text) => request('POST', '/api/inbox', text, true),
+  approveRepair: (n) => request('POST', `/api/repairs/${n}/approve`),
+  rejectRepair: (n, reason) => request('POST', `/api/repairs/${n}/reject`, { reason }),
+  noteRepair: (n, text) => request('POST', `/api/repairs/${n}/note`, { text }),
 };

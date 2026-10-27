@@ -1,7 +1,7 @@
-// Settings panel: parse inbox, theme × style, pass mark, and Manage exams (time, delete).
-import { h, clear, dropTarget, fileOrPaste } from './util.js';
+// Settings panel: Repairs, theme × style, pass mark, and Manage exams (time, delete).
+import { h, clear } from './util.js';
 
-const AGENT_LINE = 'Read .FIXPARSE.MD in this folder and fix the files waiting in the parse inbox.';
+const AGENT_LINE = 'Read .FIXPARSE.MD in this folder and work through the Repairs inbox.';
 
 export function open(ctx, { onChange = () => {} } = {}) {
   const root = document.getElementById('overlays');
@@ -117,69 +117,118 @@ export function open(ctx, { onChange = () => {} } = {}) {
     }
   }
 
-  // -- parse inbox: exams the library rejected, saved for an agent to fix
+  // -- repairs: exams that failed to load. State lives in repairs/log.md; the app only reads it
+  //    and appends owner actions (approve, reject, note).
 
-  const inboxNotice = h('div', { class: 'notice', hidden: true });
-  const inboxCount = h('p', { class: 'inbox-count' });
+  const repairsBody = h('div', { class: 'repairs' });
+  const repairsNotice = h('div', { class: 'notice', hidden: true });
+  const view = { logOpen: false, lastOnly: false, rejecting: null };
+  const tag = (n) => `#${String(n).padStart(3, '0')}`;
 
-  async function refreshInbox() {
+  function say(kind, text) {
+    repairsNotice.className = `notice ${kind}`;
+    repairsNotice.textContent = text;
+    repairsNotice.hidden = false;
+  }
+
+  async function act(fn, okText) {
+    repairsNotice.hidden = true;
     try {
-      const s = await ctx.api.inboxStatus();
-      inboxCount.textContent = `Parse inbox: ${s.waiting} waiting · ${s.ready} fixed (in parse-inbox/ready/)`;
+      const result = await fn();
+      if (okText) say('ok', typeof okText === 'function' ? okText(result) : okText);
     } catch (err) {
-      showError(err);
+      say('bad', err.message);
     }
-  }
-
-  // items: [{ name, text: () => Promise<string> }]. Resolves true when every item was saved.
-  async function sendToInbox(items) {
-    const lines = [];
-    let failed = false;
-    for (const item of items) {
-      try {
-        const r = await ctx.api.sendToInbox(await item.text());
-        lines.push(`${item.name} saved as ${r.file}.`);
-      } catch (err) {
-        failed = true;
-        lines.push(`${item.name}: ${err.message}`);
-      }
-    }
-    inboxNotice.className = `notice ${failed ? 'bad' : 'ok'}`;
-    clear(inboxNotice, lines.map((line) => h('div', null, line)));
-    inboxNotice.hidden = false;
-    await refreshInbox();
+    view.rejecting = null;
+    await refreshRepairs();
     await onChange();
-    return !failed;
   }
 
-  const sendFiles = (files) => files.length && sendToInbox(files.map((f) => ({ name: f.name, text: () => f.text() })));
-  const inboxInput = h('input', {
-    type: 'file', accept: '.md,.txt,text/markdown,text/plain', multiple: true, hidden: true,
-    onchange: (e) => { sendFiles([...e.target.files]); e.target.value = ''; },
-  });
-  const inboxZone = h('div', {
-    class: 'dropzone panel', role: 'button', tabindex: '0', 'aria-label': 'Send a file to the parse inbox',
-    onclick: () => inboxInput.click(),
-    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inboxInput.click(); } },
-  },
-  h('strong', null, "Drop a file that won't import"),
-  h('span', { class: 'muted small' }, 'or click to choose'),
-  inboxInput);
-  dropTarget(inboxZone, sendFiles);
+  function logLine(e) {
+    return h('li', { class: `log-line${e.id === null ? ' odd' : ''}` },
+      e.id === null ? e.message : [
+        h('span', { class: 'mono muted' }, e.time), ' ',
+        h('strong', { class: 'mono' }, tag(e.id)), ' ',
+        h('span', { class: `pill log-${e.event}` }, `${e.who} · ${e.event}`), ' ',
+        e.message]);
+  }
 
-  const inboxText = h('textarea', {
-    id: 'inbox-paste', class: 'paste-area', rows: '4', spellcheck: 'false',
-    placeholder: "Paste the exam text that won't import",
-  });
-  const inboxPaste = h('div', { class: 'paste-box' }, inboxText,
-    h('div', { class: 'paste-actions' }, h('button', {
-      class: 'btn primary', type: 'button',
-      onclick: async () => {
-        const text = inboxText.value;
-        if (!text.trim()) return;
-        if (await sendToInbox([{ name: 'Pasted text', text: async () => text }])) inboxText.value = '';
-      },
-    }, 'Save text to .md file')));
+  function queueItem(item) {
+    const queued = [...item.history].reverse().find((e) => e.event === 'queued');
+    const msg = queued ? queued.message : item.latest.message;
+    const failed = item.latest.event === 'failed' ? h('p', { class: 'bad-text small' }, `Last approve failed: ${item.latest.message}`) : null;
+    let actions;
+    if (view.rejecting === item.id) {
+      const why = h('textarea', { id: `reject-${item.id}`, class: 'paste-area', rows: '2', placeholder: 'Why? (optional)' });
+      actions = h('div', { class: 'reject-box' }, why,
+        h('div', { class: 'paste-actions' },
+          h('button', { class: 'btn', type: 'button', onclick: () => { view.rejecting = null; refreshRepairs(); } }, 'Cancel'),
+          h('button', {
+            class: 'btn danger', type: 'button',
+            onclick: () => act(() => ctx.api.rejectRepair(item.id, why.value), `${tag(item.id)} went back to the inbox.`),
+          }, 'Reject')));
+    } else {
+      actions = h('div', { class: 'paste-actions' },
+        h('button', { class: 'btn', type: 'button', onclick: () => { view.rejecting = item.id; refreshRepairs(); } }, 'Reject'),
+        h('button', {
+          class: 'btn primary', type: 'button', disabled: !item.fix_ready,
+          onclick: () => act(() => ctx.api.approveRepair(item.id), (r) => `${tag(item.id)} approved and loaded as ${r.id}.`),
+        }, 'Approve'));
+    }
+    return h('li', { class: 'queue-item' },
+      h('div', null, h('strong', { class: 'mono' }, tag(item.id)), ' ', msg),
+      failed, actions);
+  }
+
+  async function refreshRepairs() {
+    let s;
+    try {
+      s = await ctx.api.repairs();
+    } catch (err) {
+      say('bad', err.message);
+      return;
+    }
+    const open = s.items.map((i) => tag(i.id)).join(' ');
+    const status = s.items.length
+      ? h('p', { class: 'repairs-status' }, `${s.items.length} open: ${open}`)
+      : h('p', { class: 'repairs-status muted' }, 'All good. Nothing needs your decision.');
+
+    const queue = s.items.filter((i) => i.where === 'queue');
+    const queueBlock = queue.length ? h('ul', { class: 'queue-list' }, queue.map(queueItem)) : null;
+
+    const inboxIds = s.inbox;
+    const pick = h('select', { id: 'note-id', 'aria-label': 'Inbox item', disabled: !inboxIds.length },
+      inboxIds.length ? inboxIds.map((n) => h('option', { value: n }, tag(n))) : h('option', null, 'none'));
+    const noteText = h('input', { type: 'text', id: 'note-text', class: 'note-input', placeholder: 'Add to the log…', disabled: !inboxIds.length });
+    const addNote = h('button', {
+      class: 'btn', type: 'button', disabled: !inboxIds.length,
+      onclick: () => noteText.value.trim() && act(() => ctx.api.noteRepair(Number(pick.value), noteText.value), 'Added to the log.'),
+    }, 'Add');
+
+    let lines = s.log;
+    if (view.lastOnly) {
+      const last = new Map();
+      lines.forEach((e) => { if (e.id !== null) last.set(e.id, e); });
+      lines = [...last.values()];
+    }
+    const lastOnly = h('input', {
+      type: 'checkbox', id: 'log-last-only', checked: view.lastOnly,
+      onchange: (e) => { view.lastOnly = e.target.checked; refreshRepairs(); },
+    });
+    const log = h('details', {
+      class: 'repairs-log', open: view.logOpen,
+      ontoggle: (e) => { view.logOpen = e.target.open; },
+    },
+    h('summary', null, `Log (${s.log.length} lines)`),
+    h('label', { class: 'small', for: 'log-last-only' }, lastOnly, ' Last entry per item only'),
+    lines.length ? h('ol', { class: 'log-lines' }, [...lines].reverse().map(logLine)) : h('p', { class: 'muted small' }, 'Empty.'));
+
+    clear(repairsBody,
+      h('p', { class: 'repairs-counts' }, `Inbox ${s.inbox.length} · Queue ${s.queue.length}`),
+      status, queueBlock,
+      h('div', { class: 'note-row' }, pick, noteText, addNote),
+      log);
+  }
 
   const agentCode = h('code', { class: 'agent-text' }, AGENT_LINE);
   const agentCopy = h('button', {
@@ -218,12 +267,11 @@ export function open(ctx, { onChange = () => {} } = {}) {
       h('div', { class: 'settings-body' },
         notice,
         h('section', { class: 'set-section' },
-          h('h3', null, "Files that won't import"),
-          h('p', { class: 'muted small' }, 'Drop or paste an exam the library rejected. It is saved to parse-inbox/ for an agent to fix.'),
-          fileOrPaste(inboxZone, inboxPaste, 'Send to the parse inbox by'),
-          inboxNotice,
-          inboxCount,
-          h('p', { class: 'small' }, 'Then start an agent in this folder and give it this line:'),
+          h('h3', null, 'Repairs'),
+          h('p', { class: 'muted small' }, 'Exams that failed to load and were sent here. An agent queues fixes; you approve or reject them.'),
+          repairsNotice,
+          repairsBody,
+          h('p', { class: 'small' }, 'To work through the inbox, start an agent in this folder and give it this line:'),
           h('div', { class: 'agent-line' }, agentCode, agentCopy)),
         h('section', { class: 'set-section' },
           h('h3', null, 'Appearance'),
@@ -246,5 +294,5 @@ export function open(ctx, { onChange = () => {} } = {}) {
   root.append(overlay);
   paintSegments();
   renderExams();
-  refreshInbox();
+  refreshRepairs();
 }
