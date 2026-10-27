@@ -122,7 +122,7 @@ export function open(ctx, { onChange = () => {} } = {}) {
 
   const repairsBody = h('div', { class: 'repairs' });
   const repairsNotice = h('div', { class: 'notice', hidden: true });
-  const view = { logOpen: false, lastOnly: false, rejecting: null };
+  const view = { logOpen: false, lastOnly: true, rejecting: null };
   const tag = (n) => `#${String(n).padStart(3, '0')}`;
 
   function say(kind, text) {
