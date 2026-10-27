@@ -240,7 +240,7 @@ function card(e, strip) {
     onclick: () => select(e.id),
   },
   h('div', { class: 'card-top' },
-    h('span', { class: 'tally' }, e.attempt_count ? tallySvg(e.attempt_count, greenIndex) : h('span', { class: 'muted small' }, 'not taken yet')),
+    h('span', { class: 'tally' }, e.attempt_count ? tallySvg(e.attempt_count, greenIndex) : null),
     e.parse_issue ? h('span', { class: 'flag', title: 'Parse issue flagged, waiting for a fix' }, '🔧') : null),
   h('div', { class: 'card-label' }, groupLabel(e.maker, e.exam)),
   h('div', { class: 'card-title' }, e.title),
