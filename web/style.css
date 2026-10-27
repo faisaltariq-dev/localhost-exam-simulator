@@ -270,3 +270,19 @@ tr.green td { background: var(--ok-soft); }
 .explain { display: grid; gap: 6px; }
 .your-note { border-color: var(--accent); background: var(--accent-soft); }
 .note-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* =========================================================================
+   Settings
+   ========================================================================= */
+.settings-panel { width: min(780px, 96vw); }
+.settings-body { overflow: auto; padding: 16px; display: grid; gap: 18px; }
+.set-section { display: grid; gap: 8px; }
+.set-section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.set-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.set-label { font-weight: 700; font-size: 14px; }
+.num-input { width: 76px; font-variant-numeric: tabular-nums; }
+table.manage { min-width: 600px; }
+.flag-label { min-width: 70px; }
+.confirm-row td { background: var(--bad-soft); }
+.confirm-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.confirm-box .actions { display: flex; gap: 8px; }
