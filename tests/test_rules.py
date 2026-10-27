@@ -93,6 +93,14 @@ class StoreTest(unittest.TestCase):
             self.import_sample()
         self.assertEqual(cm.exception.status, 409)
 
+    def test_same_exam_with_different_hyphenation_is_a_duplicate(self):
+        text = read_sample("questions-and-answers-sample-cloud-data-1.md")
+        self.assertEqual(self.store.import_exam("questions-and-answers-sample-cloud-data-1.md", text)["id"],
+                         "sample-clouddata-1")
+        with self.assertRaises(StoreError) as cm:
+            self.store.import_exam("questions-and-answers-sample-clouddata-1.md", text)
+        self.assertEqual(cm.exception.status, 409)
+
     def test_bad_filename_and_invalid_write_nothing(self):
         with self.assertRaises(StoreError) as cm:
             self.store.import_exam("exam.md", read_sample(SAMPLE))

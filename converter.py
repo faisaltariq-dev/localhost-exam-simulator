@@ -11,7 +11,10 @@ import sys
 
 SCHEMA_VERSION = 1
 
-FILENAME_RE = re.compile(r"^questions-and-answers-([a-z0-9]+)-([a-z0-9]+)-([1-9][0-9]*)\.md$")
+# The name part may contain hyphens and any case; which hyphen splits maker from exam comes
+# from the header, never from guessing at the filename.
+FILENAME_RE = re.compile(r"^questions-and-answers-([a-z0-9]+(?:-[a-z0-9]+)*)-([1-9][0-9]*)\.md$", re.I)
+NAME_RE = re.compile(r"^[a-z0-9]+$")
 EXAM_ID_RE = re.compile(r"^[a-z0-9]+-[a-z0-9]+-[1-9][0-9]*$")
 HEADER_FIELDS = ("exam_maker", "exam_name", "exam_number", "title", "duration_minutes", "domain_count")
 SECTION_ORDER = ("domains", "questions", "answers")
@@ -39,16 +42,16 @@ class ParseResult:
 
 
 def parse_filename(filename):
-    """Return (maker, exam_name, number) or None."""
+    """Return (name part, number) or None, e.g. ("sample-cloud-data", 1)."""
     m = FILENAME_RE.match(filename)
     if not m:
         return None
-    return m.group(1), m.group(2), int(m.group(3))
+    return m.group(1), int(m.group(2))
 
 
-def exam_id_from_filename(filename):
-    parts = parse_filename(filename)
-    return None if parts is None else "%s-%s-%d" % parts
+def normalise_name(value):
+    """Exam maker/name as used in IDs and grouping: case and hyphens ignored."""
+    return value.strip().lower().replace("-", "")
 
 
 def _normalise(text):
@@ -256,8 +259,7 @@ def parse_exam(filename, text):
     errors = []
     parts = parse_filename(filename)
     if parts is None:
-        errors.append('Filename: "%s" must look like questions-and-answers-<maker>-<exam>-<number>.md '
-                      "(lowercase letters/digits, no extra hyphens)" % filename)
+        errors.append('Filename: "%s" must look like questions-and-answers-<maker>-<exam>-<number>.md' % filename)
 
     lines = _normalise(text)
     header, body_start = _parse_header(lines, errors)
@@ -271,15 +273,19 @@ def parse_exam(filename, text):
     for field, value in (("exam_number", exam_number), ("duration_minutes", duration), ("domain_count", domain_count)):
         if header.get(field) and value is None:
             errors.append('Header: %s must be a positive whole number (got "%s")' % (field, header[field]))
-    maker = header.get("exam_maker", "").lower()
-    name = header.get("exam_name", "").lower()
+    maker = normalise_name(header.get("exam_maker", ""))
+    name = normalise_name(header.get("exam_name", ""))
+    names_ok = True
+    for field, value in (("exam_maker", maker), ("exam_name", name)):
+        if header.get(field) and not NAME_RE.match(value):
+            errors.append('Header: %s may only use letters, digits and hyphens (got "%s")' % (field, header[field]))
+            names_ok = False
     if parts is not None:
-        if maker and maker != parts[0]:
-            errors.append('Header: exam_maker is "%s" but filename says "%s"' % (maker, parts[0]))
-        if name and name != parts[1]:
-            errors.append('Header: exam_name is "%s" but filename says "%s"' % (name, parts[1]))
-        if exam_number is not None and exam_number != parts[2]:
-            errors.append("Header: exam_number is %d but filename says %d" % (exam_number, parts[2]))
+        if names_ok and maker and name and normalise_name(parts[0]) != maker + name:
+            errors.append('Header: exam_maker + exam_name ("%s" + "%s") don\'t match the filename "%s" '
+                          "(hyphens and case are ignored)" % (header["exam_maker"], header["exam_name"], parts[0]))
+        if exam_number is not None and exam_number != parts[1]:
+            errors.append("Header: exam_number is %d but filename says %d" % (exam_number, parts[1]))
 
     sections, order = _split_sections(lines, body_start, errors)
     for sec in SECTION_ORDER:
@@ -321,10 +327,10 @@ def parse_exam(filename, text):
         return ParseResult(None, errors)
     exam = {
         "schema_version": SCHEMA_VERSION,
-        "id": "%s-%s-%d" % parts,
-        "exam_maker": parts[0],
-        "exam_name": parts[1],
-        "exam_number": parts[2],
+        "id": "%s-%s-%d" % (maker, name, exam_number),
+        "exam_maker": maker,
+        "exam_name": name,
+        "exam_number": exam_number,
         "title": header["title"],
         "duration_minutes": duration,
         "domains": domains,

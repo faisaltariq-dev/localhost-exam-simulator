@@ -213,21 +213,21 @@ class Store:
     def import_exam(self, filename, text):
         """Validate and save an uploaded exam. All or nothing; never overwrites."""
         filename = os.path.basename(filename or "")
-        exam_id = converter.exam_id_from_filename(filename)
-        if exam_id is None:
+        if converter.parse_filename(filename) is None:
             raise StoreError(400, errors=[
-                'Filename "%s" must look like questions-and-answers-<maker>-<exam>-<number>.md '
-                "(lowercase letters/digits, no extra hyphens)" % filename])
+                'Filename "%s" must look like questions-and-answers-<maker>-<exam>-<number>.md' % filename])
         with self._lock:
-            raw_path = os.path.join(self.raw_dir, filename)
-            if os.path.exists(self.exam_path(exam_id)) or os.path.exists(raw_path):
-                raise StoreError(409, "%s already exists. Upload it under a new number "
-                                      "(e.g. ...-%d.md) or delete the old one in Settings."
-                                 % (exam_id, int(exam_id.rsplit("-", 1)[1]) + 1))
+            # The ID comes from the header (hyphens and case ignored), so parse before the duplicate check.
             result = converter.parse_exam(filename, text)
             if not result.ok:
                 raise StoreError(422, errors=result.errors)
             exam = result.exam
+            exam_id = exam["id"]
+            raw_path = os.path.join(self.raw_dir, filename)
+            if os.path.exists(self.exam_path(exam_id)) or os.path.exists(raw_path):
+                raise StoreError(409, "%s already exists. Upload it under a new number "
+                                      "(e.g. ...-%d.md) or delete the old one in Settings."
+                                 % (exam_id, exam["exam_number"] + 1))
             exam["imported_at"] = now_iso()
             with open(raw_path, "x", encoding="utf-8", newline="") as f:
                 f.write(text)
