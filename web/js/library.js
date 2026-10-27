@@ -72,7 +72,7 @@ function page() {
   state.els.board = h('section', { class: 'board', 'aria-label': 'Exams' });
   state.els.detail = h('section', { class: 'detail-slot', 'aria-label': 'Selected exam' });
   return h('div', { class: 'page' },
-    h('div', { class: 'intake' }, fileOrPaste(fileBox(), pasteBox(), 'Load an exam by'), promptBlock()),
+    h('div', { class: 'intake' }, fileOrPaste(fileBox(), pasteBox(), 'Load an exam by', (mode) => { if (mode === 'file') state.els.pasteRenderOff(); }), promptBlock()),
     state.els.notice, state.els.board, state.els.detail);
 }
 
@@ -143,10 +143,27 @@ function pasteBox() {
       showNotice('bad', 'Paste an exam first.');
       return;
     }
-    if (await loadExam('Pasted text', text.value)) text.value = '';
+    if (await loadExam('Pasted text', text.value)) {
+      text.value = '';
+      setRender(false);
+    }
   };
-  return h('div', { class: 'paste-box' }, text,
-    h('div', { class: 'paste-actions' }, h('button', { class: 'btn primary', type: 'button', onclick: go }, 'Load')));
+  // Render previews the pasted text as formatted markdown in the same box. Off by default, and
+  // switched off whenever File is chosen. Load always sends the raw text.
+  const preview = h('div', { class: 'prompt-rendered paste-rendered', hidden: true });
+  const renderSwitch = h('button', {
+    type: 'button', class: 'switch', role: 'switch', 'aria-checked': 'false', title: 'Preview the pasted markdown',
+    onclick: () => setRender(renderSwitch.getAttribute('aria-checked') !== 'true'),
+  }, h('span', { class: 'knob' }), h('span', null, 'Render'));
+  function setRender(on) {
+    renderSwitch.setAttribute('aria-checked', String(on));
+    if (on) clear(preview, text.value.trim() ? markdown(text.value) : h('p', { class: 'muted' }, 'Nothing pasted yet.'));
+    preview.hidden = !on;
+    text.hidden = on;
+  }
+  state.els.pasteRenderOff = () => setRender(false);
+  return h('div', { class: 'paste-box' }, text, preview,
+    h('div', { class: 'paste-actions' }, renderSwitch, h('button', { class: 'btn primary', type: 'button', onclick: go }, 'Load')));
 }
 
 // Loads one exam and reports the result. Resolves true when it loaded.
