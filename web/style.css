@@ -138,8 +138,9 @@ tr.clickable:hover td { background: var(--surface-2); }
 .dropzone { display: grid; gap: 4px; place-content: center; text-align: center; min-height: 92px; padding: 16px;
   border: 2px dashed var(--line); cursor: pointer; transition: border-color var(--transition), background var(--transition); }
 .dropzone:hover, .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
-details.prompt summary { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; cursor: pointer; }
-details.prompt summary::-webkit-details-marker { display: none; }
+.prompt-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; }
+summary.prompt-head { list-style: none; cursor: pointer; }
+summary.prompt-head::-webkit-details-marker { display: none; }
 details.prompt .caret { font-size: 11px; color: var(--muted); transition: transform var(--transition); }
 details.prompt[open] .caret { transform: rotate(90deg); }
 .prompt-name { font-weight: 700; font-size: 14px; }
@@ -352,3 +353,10 @@ table.manage { min-width: 600px; }
 /* Line icons */
 .icon { display: block; flex: none; }
 .icon-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; }
+
+/* The three intake boxes (file drop, paste, prompt text) share one height. */
+.intake { --intake-h: 92px; }
+.intake .dropzone { height: var(--intake-h); min-height: 0; }
+.intake-box .paste-area { height: var(--intake-h); min-height: 0; resize: none; }
+.intake .prompt-text { height: var(--intake-h); max-height: none; }
+.intake .prompt-head { padding-block: 5px; }  /* header + box ends level with the File | Paste row */

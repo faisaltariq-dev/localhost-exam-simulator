@@ -205,8 +205,9 @@ function showNotice(kind, content) {
 function promptBlock() {
   const pre = h('pre', { class: 'prompt-text' }, 'Loading…');
   const copy = copyButton(() => state.promptText, () => { details.open = true; selectText(pre); });
-  const details = h('details', { class: 'prompt panel' },
-    h('summary', null,
+  // Open by default; folding it hides the text, unfolding drops the same height as the other boxes.
+  const details = h('details', { class: 'prompt panel', open: true },
+    h('summary', { class: 'prompt-head' },
       h('span', { class: 'caret', 'aria-hidden': 'true' }, '▶'),
       h('span', { class: 'mono prompt-name' }, 'prompt-for-exam.md'),
       h('span', { class: 'muted small prompt-desc' }, 'Format spec to give any AI with your exam request'),
