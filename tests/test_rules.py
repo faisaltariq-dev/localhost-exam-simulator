@@ -162,6 +162,19 @@ class StoreTest(unittest.TestCase):
         s = self.store.load_settings()
         self.assertEqual(s["duration_overrides"], {})
 
+    def test_parse_inbox(self):
+        self.assertEqual(self.store.inbox_status(), {"waiting": 0, "ready": 0, "folder": "parse-inbox"})
+        with self.assertRaises(StoreError):
+            self.store.add_to_inbox(read_sample(SAMPLE))  # valid exams belong in the library
+        broken = read_sample("broken", "questions-and-answers-badchoices-demo-1.md")
+        first = self.store.add_to_inbox(broken)
+        self.assertEqual((first["file"], first["waiting"]), ("inbox-001.md", 1))
+        self.assertIn("Q2: found 3 choices, need 4 (A–D)", first["errors"])
+        os.makedirs(self.store.ready_dir)
+        os.rename(os.path.join(self.store.inbox_dir, "inbox-001.md"), os.path.join(self.store.ready_dir, "inbox-001.md"))
+        second = self.store.add_to_inbox(broken)  # numbering continues past files moved to ready/
+        self.assertEqual((second["file"], second["waiting"], second["ready"]), ("inbox-002.md", 1, 1))
+
     def test_bad_ids_never_touch_disk(self):
         for bad in ("../etc", "a-b", "x-y-0", ""):
             with self.assertRaises(StoreError):

@@ -291,3 +291,10 @@ table.manage { min-width: 600px; }
 .paste-box { display: grid; gap: 8px; }
 .paste-area { width: 100%; min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.45; }
 .paste-actions { display: flex; justify-content: flex-end; }
+
+/* Parse inbox (settings) */
+.inbox-count { font-weight: 700; }
+.agent-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px;
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.agent-text { flex: 1 1 260px; background: none; padding: 0; overflow-wrap: anywhere; }
+.inbox-hint { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

@@ -32,7 +32,11 @@ export function cleanup() {
 
 async function reload() {
   if (!state) return;
-  state.exams = await state.ctx.api.listExams();
+  const [exams, inbox] = await Promise.all([state.ctx.api.listExams(), state.ctx.api.inboxStatus()]);
+  if (!state) return;
+  state.exams = exams;
+  state.els.settingsBtn.textContent = inbox.waiting ? `⚙ Settings · ${inbox.waiting}` : '⚙ Settings';
+  state.els.settingsBtn.title = inbox.waiting ? `${inbox.waiting} file(s) waiting in the parse inbox` : '';
   if (!state.exams.some((e) => e.id === state.selected)) state.selected = state.exams.length ? state.exams[0].id : '';
   renderBoard();
   renderDetail();
@@ -55,7 +59,7 @@ function topbar() {
   return h('header', { class: 'topbar' },
     h('span', { class: 'brand' }, 'Exam Simulator'),
     search, seg,
-    h('button', { class: 'btn', type: 'button', onclick: openSettings }, '⚙ Settings'));
+    state.els.settingsBtn = h('button', { class: 'btn', type: 'button', onclick: openSettings }, '⚙ Settings'));
 }
 
 function page() {
@@ -140,6 +144,11 @@ async function importItems(items) {
     `Added ${a.title} (${a.question_count} questions, ${a.domain_count} domains, ${a.duration_minutes} min).`)));
   failed.forEach((f) => parts.push(h('div', null, h('strong', null, `${f.name} was not added:`),
     h('ul', null, f.errors.map((e) => h('li', null, e))))));
+  if (failed.length) {
+    parts.push(h('div', { class: 'inbox-hint' },
+      "If this file looks right to you, drop it in Settings → Files that won't import, and an agent can fix the parser. ",
+      h('button', { class: 'btn', type: 'button', onclick: openSettings }, 'Open Settings')));
+  }
   showNotice(failed.length ? 'bad' : 'ok', parts);
   if (added.length) state.selected = added[added.length - 1].id;
   await reload();

@@ -45,4 +45,6 @@ export const api = {
     return request('POST', `/api/upload?filename=${enc(file.name)}`, text, true);
   },
   uploadText: (text) => request('POST', '/api/upload', text, true),
+  inboxStatus: () => request('GET', '/api/inbox'),
+  sendToInbox: (text) => request('POST', '/api/inbox', text, true),
 };

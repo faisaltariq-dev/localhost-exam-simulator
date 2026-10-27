@@ -1,6 +1,7 @@
 # runtime data
 exams/
 data/
+parse-inbox/
 
 # python
 __pycache__/

@@ -1,5 +1,7 @@
-// Settings panel: theme × style, pass mark, and Manage exams (time, delete).
-import { h, clear } from './util.js';
+// Settings panel: parse inbox, theme × style, pass mark, and Manage exams (time, delete).
+import { h, clear, dropTarget, fileOrPaste } from './util.js';
+
+const AGENT_LINE = 'Read .FIXPARSE.MD in this folder and fix the files waiting in the parse inbox.';
 
 export function open(ctx, { onChange = () => {} } = {}) {
   const root = document.getElementById('overlays');
@@ -115,6 +117,89 @@ export function open(ctx, { onChange = () => {} } = {}) {
     }
   }
 
+  // -- parse inbox: exams the library rejected, saved for an agent to fix
+
+  const inboxNotice = h('div', { class: 'notice', hidden: true });
+  const inboxCount = h('p', { class: 'inbox-count' });
+
+  async function refreshInbox() {
+    try {
+      const s = await ctx.api.inboxStatus();
+      inboxCount.textContent = `Parse inbox: ${s.waiting} waiting · ${s.ready} fixed (in parse-inbox/ready/)`;
+    } catch (err) {
+      showError(err);
+    }
+  }
+
+  // items: [{ name, text: () => Promise<string> }]. Resolves true when every item was saved.
+  async function sendToInbox(items) {
+    const lines = [];
+    let failed = false;
+    for (const item of items) {
+      try {
+        const r = await ctx.api.sendToInbox(await item.text());
+        lines.push(`${item.name} saved as ${r.file}.`);
+      } catch (err) {
+        failed = true;
+        lines.push(`${item.name}: ${err.message}`);
+      }
+    }
+    inboxNotice.className = `notice ${failed ? 'bad' : 'ok'}`;
+    clear(inboxNotice, lines.map((line) => h('div', null, line)));
+    inboxNotice.hidden = false;
+    await refreshInbox();
+    await onChange();
+    return !failed;
+  }
+
+  const sendFiles = (files) => files.length && sendToInbox(files.map((f) => ({ name: f.name, text: () => f.text() })));
+  const inboxInput = h('input', {
+    type: 'file', accept: '.md,.txt,text/markdown,text/plain', multiple: true, hidden: true,
+    onchange: (e) => { sendFiles([...e.target.files]); e.target.value = ''; },
+  });
+  const inboxZone = h('div', {
+    class: 'dropzone panel', role: 'button', tabindex: '0', 'aria-label': 'Send a file to the parse inbox',
+    onclick: () => inboxInput.click(),
+    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inboxInput.click(); } },
+  },
+  h('strong', null, "Drop a file that won't import"),
+  h('span', { class: 'muted small' }, 'or click to choose'),
+  inboxInput);
+  dropTarget(inboxZone, sendFiles);
+
+  const inboxText = h('textarea', {
+    id: 'inbox-paste', class: 'paste-area', rows: '4', spellcheck: 'false',
+    placeholder: "Paste the exam text that won't import",
+  });
+  const inboxPaste = h('div', { class: 'paste-box' }, inboxText,
+    h('div', { class: 'paste-actions' }, h('button', {
+      class: 'btn primary', type: 'button',
+      onclick: async () => {
+        const text = inboxText.value;
+        if (!text.trim()) return;
+        if (await sendToInbox([{ name: 'Pasted text', text: async () => text }])) inboxText.value = '';
+      },
+    }, 'Save text to .md file')));
+
+  const agentCode = h('code', { class: 'agent-text' }, AGENT_LINE);
+  const agentCopy = h('button', {
+    class: 'btn', type: 'button',
+    onclick: async () => {
+      try {
+        await navigator.clipboard.writeText(AGENT_LINE);
+        agentCopy.textContent = 'Copied';
+      } catch (err) {
+        const range = document.createRange();
+        range.selectNodeContents(agentCode);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        agentCopy.textContent = 'Selected · press ⌘C';
+      }
+      setTimeout(() => { agentCopy.textContent = 'Copy'; }, 1800);
+    },
+  }, 'Copy');
+
   // -- panel
 
   const close = () => {
@@ -132,6 +217,14 @@ export function open(ctx, { onChange = () => {} } = {}) {
         h('button', { class: 'btn', type: 'button', onclick: close }, 'Close')),
       h('div', { class: 'settings-body' },
         notice,
+        h('section', { class: 'set-section' },
+          h('h3', null, "Files that won't import"),
+          h('p', { class: 'muted small' }, 'Drop or paste an exam the library rejected. It is saved to parse-inbox/ for an agent to fix.'),
+          fileOrPaste(inboxZone, inboxPaste, 'Send to the parse inbox by'),
+          inboxNotice,
+          inboxCount,
+          h('p', { class: 'small' }, 'Then start an agent in this folder and give it this line:'),
+          h('div', { class: 'agent-line' }, agentCode, agentCopy)),
         h('section', { class: 'set-section' },
           h('h3', null, 'Appearance'),
           h('div', { class: 'set-row' },
@@ -153,4 +246,5 @@ export function open(ctx, { onChange = () => {} } = {}) {
   root.append(overlay);
   paintSegments();
   renderExams();
+  refreshInbox();
 }
