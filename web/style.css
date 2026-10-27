@@ -298,3 +298,11 @@ table.manage { min-width: 600px; }
   background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .agent-text { flex: 1 1 260px; background: none; padding: 0; overflow-wrap: anywhere; }
 .inbox-hint { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Staged single-file load */
+.file-box { display: grid; gap: 8px; }
+.dropzone-label { display: grid; gap: 4px; justify-items: center; }
+.dropzone-label:has(.staged-name) { grid-auto-flow: column; align-items: center; gap: 10px; }
+.staged-name { font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
+.unstage { border: 0; background: none; font-size: 16px; line-height: 1; color: var(--muted); padding: 2px 6px; }
+.unstage:hover { color: var(--bad); }

@@ -40,11 +40,7 @@ export const api = {
   getSettings: () => request('GET', '/api/settings'),
   putSettings: (settings) => request('PUT', '/api/settings', settings),
   getPrompt: () => request('GET', '/prompt-for-exam.md'),
-  async upload(file) {
-    const text = await file.text();
-    return request('POST', `/api/upload?filename=${enc(file.name)}`, text, true);
-  },
-  uploadText: (text) => request('POST', '/api/upload', text, true),
+  load: (text, filename = '') => request('POST', `/api/upload?filename=${enc(filename)}`, text, true),
   inboxStatus: () => request('GET', '/api/inbox'),
   sendToInbox: (text) => request('POST', '/api/inbox', text, true),
 };

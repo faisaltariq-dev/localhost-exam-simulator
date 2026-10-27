@@ -67,7 +67,7 @@ function page() {
   state.els.board = h('section', { class: 'board', 'aria-label': 'Exams' });
   state.els.detail = h('section', { class: 'detail-slot', 'aria-label': 'Selected exam' });
   return h('div', { class: 'page' },
-    h('div', { class: 'intake' }, fileOrPaste(dropzone(), pasteBox(), 'Add an exam by'), promptBlock()),
+    h('div', { class: 'intake' }, fileOrPaste(fileBox(), pasteBox(), 'Load an exam by'), promptBlock()),
     state.els.notice, state.els.board, state.els.detail);
 }
 
@@ -89,21 +89,43 @@ async function openSettings() {
 
 // ---- drop zone ------------------------------------------------------------------------
 
-function dropzone() {
+// One file at a time: dropping or choosing only stages it; nothing loads until Load is pressed.
+function fileBox() {
+  let staged = null;
   const input = h('input', {
-    type: 'file', accept: '.md,text/markdown', multiple: true, hidden: true,
-    onchange: (e) => { uploadFiles([...e.target.files]); e.target.value = ''; },
+    type: 'file', accept: '.md,.txt,text/markdown,text/plain', hidden: true,
+    onchange: (e) => { stage(e.target.files[0]); e.target.value = ''; },
   });
+  const label = h('div', { class: 'dropzone-label' });
   const zone = h('div', {
-    class: 'dropzone panel', role: 'button', tabindex: '0', 'aria-label': 'Add an exam file',
+    class: 'dropzone panel', role: 'button', tabindex: '0', 'aria-label': 'Choose an exam file',
     onclick: () => input.click(),
     onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } },
-  },
-  h('strong', null, 'Drop an exam file here'),
-  h('span', { class: 'muted small' }, 'questions-and-answers-<maker>-<exam>-<n>.md · or click to choose'),
-  input);
-  dropTarget(zone, uploadFiles);
-  return zone;
+  }, label, input);
+  const loadBtn = h('button', {
+    class: 'btn primary', type: 'button',
+    onclick: async () => {
+      if (!staged) return;
+      if (await loadExam(staged.name, await staged.text())) stage(null);
+    },
+  }, 'Load');
+  function stage(file) {
+    staged = file || null;
+    if (staged) {
+      clear(label, h('strong', { class: 'staged-name' }, staged.name),
+        h('button', {
+          class: 'unstage', type: 'button', 'aria-label': `Remove ${staged.name}`,
+          onclick: (e) => { e.stopPropagation(); stage(null); },
+        }, '✕'));
+    } else {
+      clear(label, h('strong', null, 'Drop an exam file here'),
+        h('span', { class: 'muted small' }, 'or click to choose · then press Load'));
+    }
+    loadBtn.disabled = !staged;
+  }
+  dropTarget(zone, (files) => stage(files[0]));
+  stage(null);
+  return h('div', { class: 'file-box' }, zone, h('div', { class: 'paste-actions' }, loadBtn));
 }
 
 function pasteBox() {
@@ -116,43 +138,30 @@ function pasteBox() {
       showNotice('bad', 'Paste an exam first.');
       return;
     }
-    const ok = await importItems([{ name: 'Pasted text', send: () => state.ctx.api.uploadText(text.value) }]);
-    if (ok) text.value = '';
+    if (await loadExam('Pasted text', text.value)) text.value = '';
   };
   return h('div', { class: 'paste-box' }, text,
-    h('div', { class: 'paste-actions' }, h('button', { class: 'btn primary', type: 'button', onclick: go }, 'Import')));
+    h('div', { class: 'paste-actions' }, h('button', { class: 'btn primary', type: 'button', onclick: go }, 'Load')));
 }
 
-function uploadFiles(files) {
-  return importItems(files.map((file) => ({ name: file.name, send: () => state.ctx.api.upload(file) })));
-}
-
-// Sends each item to the server and reports every result in one notice. Resolves true if all were added.
-async function importItems(items) {
-  if (!items.length) return false;
-  const added = [];
-  const failed = [];
-  for (const item of items) {
-    try {
-      added.push(await item.send());
-    } catch (err) {
-      failed.push({ name: item.name, errors: err.errors || [err.message] });
-    }
+// Loads one exam and reports the result. Resolves true when it loaded.
+async function loadExam(name, text) {
+  let loaded;
+  try {
+    loaded = await state.ctx.api.load(text, name === 'Pasted text' ? '' : name);
+  } catch (err) {
+    showNotice('bad', [
+      h('div', null, h('strong', null, `${name} was not loaded:`),
+        h('ul', null, (err.errors || [err.message]).map((e) => h('li', null, e)))),
+      h('div', { class: 'inbox-hint' },
+        "If this file looks right to you, drop it in Settings → Files that won't import, and an agent can fix the parser. ",
+        h('button', { class: 'btn', type: 'button', onclick: openSettings }, 'Open Settings'))]);
+    return false;
   }
-  const parts = [];
-  added.forEach((a) => parts.push(h('div', null,
-    `Added ${a.title} (${a.question_count} questions, ${a.domain_count} domains, ${a.duration_minutes} min).`)));
-  failed.forEach((f) => parts.push(h('div', null, h('strong', null, `${f.name} was not added:`),
-    h('ul', null, f.errors.map((e) => h('li', null, e))))));
-  if (failed.length) {
-    parts.push(h('div', { class: 'inbox-hint' },
-      "If this file looks right to you, drop it in Settings → Files that won't import, and an agent can fix the parser. ",
-      h('button', { class: 'btn', type: 'button', onclick: openSettings }, 'Open Settings')));
-  }
-  showNotice(failed.length ? 'bad' : 'ok', parts);
-  if (added.length) state.selected = added[added.length - 1].id;
+  showNotice('ok', `Loaded ${loaded.title} (${loaded.question_count} questions, ${loaded.domain_count} domains, ${loaded.duration_minutes} min).`);
+  state.selected = loaded.id;
   await reload();
-  return !failed.length;
+  return true;
 }
 
 function showNotice(kind, content) {
