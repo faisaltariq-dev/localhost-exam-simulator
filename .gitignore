@@ -1,0 +1,11 @@
+# runtime data
+exams/
+data/
+
+# python
+__pycache__/
+*.pyc
+
+# os / local reference images
+.DS_Store
+*.avif
