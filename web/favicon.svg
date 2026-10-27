@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .ink { stroke: #141414; fill: none; }
+    .dot { fill: #141414; }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #f2f2f2; }
+      .dot { fill: #f2f2f2; }
+    }
+  </style>
+  <!-- "A": a rising left stroke that rounds over into a straight right leg, plus a crossbar -->
+  <path class="ink" d="M10 64 L27 12 Q29.5 5 36 5 L36 64" stroke-width="9" stroke-linejoin="round"/>
+  <path class="ink" d="M16 45 H36" stroke-width="8"/>
+  <!-- "i": a stem with a diamond dot -->
+  <path class="ink" d="M51.5 22 V64" stroke-width="9"/>
+  <path class="dot" d="M51.5 3 L57 8.6 L51.5 14.2 L46 8.6 Z"/>
+</svg>
