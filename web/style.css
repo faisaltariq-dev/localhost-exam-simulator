@@ -287,7 +287,7 @@ table.manage { min-width: 600px; }
 
 /* File | Paste intake */
 .intake-box { display: grid; gap: 8px; min-width: 0; }
-.mode-toggle { justify-self: start; }
+.mode-toggle { justify-self: end; }  /* same right edge as the Load button */
 .paste-box { display: grid; gap: 8px; }
 .paste-area { width: 100%; min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.45; }
 .paste-actions { display: flex; justify-content: flex-end; }
