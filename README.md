@@ -35,8 +35,8 @@ Then open http://localhost:8000. Stop it with `Ctrl+C`. Python 3.9+ is all you n
 **When an exam won't load.** The library lists every reason and asks whether to send it to **Repairs**. You can add an optional note on why.
 1. Each request gets its own numbered folder (`repairs/001/`, `repairs/002/` …), and `repairs/log.md` keeps a running history of every step.
 2. Start any coding agent in this folder and give it the line from **Settings → Repairs**, which has a **Copy** button: *"Read .FIXPARSE.MD in this folder and work through the Repairs inbox."* The agent fixes what's easy and queues it with a short note. When something is odd, it asks you or explains in the log.
-3. In **Settings → Repairs**, **Approve** loads a queued fix and **Reject** sends it back with an optional reason. You can also add a note to any inbox item. The log stays collapsed to a short status unless you open it.
-4. Nothing in `repairs/` is ever deleted by the app. Remove folders by hand when you're done with them.
+3. In **Settings → Repairs**, each queued item has a decision. A fix gets **Load** (green), which loads it into your library. A proposal to delete a request gets **Delete** (red), which moves its folder to `repairs/trash/`. **Reject** sends either one back with an optional reason. You can also add a note to any inbox item. The log stays collapsed to a short status unless you open it.
+4. Nothing is ever truly deleted by the app. Empty `repairs/trash/` and remove old folders by hand when you're done with them.
 
 **Check a file without importing it:** `python3 converter.py <file.md>`
 
