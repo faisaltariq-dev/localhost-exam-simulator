@@ -180,3 +180,52 @@ details.prompt[open] .caret { transform: rotate(90deg); }
 tr.green td { background: var(--ok-soft); }
 .green-pill { margin-left: 8px; }
 .over { color: var(--bad); font-weight: 700; }
+
+/* =========================================================================
+   Exam screen, pause, review panel
+   ========================================================================= */
+.timer { padding: 4px 10px; border-radius: var(--radius-sm); font-weight: 700; font-size: 15px; }
+.timer.green { background: var(--ok-soft); color: var(--ok); }
+.timer.red { background: var(--bad-soft); color: var(--bad); }
+.exam-page { max-width: 1040px; }
+.qgrid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; padding: 20px; }
+@media (max-width: 760px) { .qgrid { grid-template-columns: 1fr; } }
+.qnum { font-size: 13px; font-weight: 700; }
+.qtext { margin: 8px 0 16px; display: grid; gap: 8px; }
+.choices { display: grid; gap: 8px; }
+.choice { display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  transition: border-color var(--transition), background var(--transition); }
+.choice:hover { border-color: var(--muted); }
+.choice.selected { border-color: var(--accent); background: var(--accent-soft); }
+.choice-text { min-width: 0; display: grid; gap: 6px; }
+.bubble { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--muted); display: grid;
+  place-items: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+.choice.selected .bubble { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.qside { display: grid; gap: 8px; align-content: start; }
+.bookmark { justify-self: start; }
+.bookmark.on { color: var(--accent); border-color: var(--accent); }
+.note-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-top: 4px; }
+.note { width: 100%; resize: vertical; min-height: 120px; line-height: 1.45; }
+.qnav { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--line); }
+
+.pause-screen { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: grid; place-items: center; padding: 16px; }
+.pause-box { max-width: 460px; padding: 24px; display: grid; gap: 12px; text-align: center; justify-items: center; }
+.pause-warn { font-size: 17px; color: var(--bad); }
+
+.review-panel { width: 60vw; height: min(640px, calc(100vh - 48px)); }
+@media (max-width: 900px) { .review-panel { width: 96vw; } }
+.review-body { overflow: auto; flex: 1; }
+.review-body table { min-width: 560px; }
+.review-body td.first { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.review-body td.star { color: var(--accent); }
+.review-body tr.current td { background: var(--accent-soft); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.note-chip { border: 1px dashed var(--muted); background: transparent; border-radius: var(--radius-sm); padding: 2px 8px; font-size: 13px; white-space: nowrap; }
+.note-chip[aria-expanded="true"] { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+.note-pop { position: absolute; z-index: 5; width: 260px; max-width: calc(100% - 16px); padding: 10px 12px; background: var(--surface);
+  border: 1px solid var(--accent); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); font-size: 14px; }
+.pop-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
+.pop-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 200px; overflow: auto; }
