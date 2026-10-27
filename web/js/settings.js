@@ -122,7 +122,7 @@ export function open(ctx, { onChange = () => {} } = {}) {
 
   const repairsBody = h('div', { class: 'repairs' });
   const repairsNotice = h('div', { class: 'notice', hidden: true });
-  const view = { logOpen: false, lastOnly: true, rejecting: null };
+  const view = { logOpen: true, lastOnly: true, rejecting: null };
   const tag = (n) => `#${String(n).padStart(3, '0')}`;
 
   function say(kind, text) {
@@ -274,29 +274,27 @@ export function open(ctx, { onChange = () => {} } = {}) {
       h('div', { class: 'settings-body' },
         notice,
         h('section', { class: 'set-section' },
-          h('h3', null, 'Repairs'),
-          h('p', { class: 'muted small' }, 'Exams that failed to load and were sent here. An agent queues fixes; you approve or reject them.'),
-          repairsNotice,
-          repairsBody,
-          h('p', { class: 'small' }, 'To work through the inbox, start an agent in this folder and give it this line:'),
-          h('div', { class: 'agent-line' }, agentCode, agentCopy)),
-        h('section', { class: 'set-section' },
-          h('h3', null, 'Appearance'),
+          h('h3', null, 'General'),
           h('div', { class: 'set-row' },
             h('span', { class: 'set-label' }, 'Theme'), seg('theme', [['light', 'Light'], ['dark', 'Dark']]),
-            h('span', { class: 'set-label' }, 'Style'), seg('style', [['classic', 'Classic'], ['modern', 'Modern']])),
-          h('p', { class: 'muted small' }, 'Classic looks like a test-centre client. Modern keeps the same layout with a lighter touch.')),
-        h('section', { class: 'set-section' },
-          h('h3', null, 'Scoring'),
-          h('div', { class: 'set-row' },
-            h('label', { class: 'set-label', for: 'pass-mark' }, 'Pass mark'), passInput, h('span', null, '%')),
-          h('p', { class: 'muted small' }, 'Used for the green tally mark and the domain bars.')),
+            h('span', { class: 'set-label' }, 'Style'), seg('style', [['classic', 'Classic'], ['modern', 'Modern']]),
+            h('label', { class: 'set-label', for: 'pass-mark' }, 'Pass mark'), h('span', null, passInput, ' %')),
+          h('p', { class: 'muted small' },
+            'Classic looks like a test-centre client; Modern keeps the same layout with a lighter touch. '
+            + 'The pass mark drives the green tally mark and the domain bars.')),
         h('section', { class: 'set-section' },
           h('h3', null, 'Manage exams'),
           h('p', { class: 'muted small' }, 'A time change only affects new attempts.'),
           h('div', { class: 'tablewrap' }, h('table', { class: 'manage' },
             h('thead', null, h('tr', null, ['Exam', 'Time (min)', 'Attempts', ''].map((t) => h('th', null, t)))),
-            tbody))))));
+            tbody))),
+        h('section', { class: 'set-section' },
+          h('h3', null, 'Repairs'),
+          h('p', { class: 'muted small' }, 'Exams that failed to load and were sent here. An agent queues fixes; you approve or reject them.'),
+          repairsNotice,
+          repairsBody,
+          h('p', { class: 'small' }, 'To work through the inbox, start an agent in this folder and give it this line:'),
+          h('div', { class: 'agent-line' }, agentCode, agentCopy)))));
   document.addEventListener('keydown', onKey);
   root.append(overlay);
   paintSegments();
