@@ -89,6 +89,30 @@ class RepairsTest(unittest.TestCase):
         status = self.store.repairs_status()
         self.assertEqual((status["inbox"], status["items"][0]["latest"]["message"]), ([1], "you changed an answer"))
 
+    def agent_proposes_delete(self, number, message):
+        with open(self.store.repairs_log, "a", encoding="utf-8") as f:
+            f.write("2026-10-27 22:40 · #%03d · agent · queued-delete · %s\n" % (number, message))
+
+    def test_delete_proposal_approved_moves_folder_to_trash(self):
+        self.store.send_to_repairs(self.broken)
+        self.agent_proposes_delete(1, "owner asked to delete it")
+        status = self.store.repairs_status()
+        self.assertEqual((status["queue"], status["items"][0]["kind"]), ([1], "delete"))
+        result = self.store.approve_repair(1)
+        self.assertEqual(result["moved_to"], "repairs/trash/001")
+        self.assertFalse(os.path.exists(os.path.join(self.store.repairs_dir, "001")))
+        self.assertTrue(os.path.isfile(os.path.join(self.store.repairs_dir, "trash", "001", "exam.md")))
+        self.assertEqual(self.store.repairs_status()["items"], [])
+        self.assertEqual(self.store.send_to_repairs(self.broken)["id"], 2)  # trashed numbers are not reused
+
+    def test_delete_proposal_rejected_goes_back_to_inbox(self):
+        self.store.send_to_repairs(self.broken)
+        self.agent_proposes_delete(1, "not worth fixing")
+        self.store.reject_repair(1, "keep it, I'll regenerate")
+        item = self.store.repairs_status()["items"][0]
+        self.assertEqual((item["where"], item["kind"], item["latest"]["message"]), ("inbox", "fix", "keep it, I'll regenerate"))
+        self.assertTrue(os.path.isdir(os.path.join(self.store.repairs_dir, "001")))
+
     def test_notes_only_on_inbox_items_and_do_not_change_state(self):
         self.store.send_to_repairs(self.broken)
         self.store.note_repair(1, "import it as -3")

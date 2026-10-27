@@ -327,3 +327,9 @@ table.manage { min-width: 600px; }
 .log-line.odd { color: var(--muted); font-style: italic; }
 .log-queued, .log-approved { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
 .log-declined, .log-rejected, .log-failed { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+
+/* Queue decisions: Load (green) and Delete proposals (red) */
+.btn.go { background: var(--ok); border-color: var(--ok); color: #fff; }
+.queue-item.delete { border-color: var(--bad); background: var(--bad-soft); }
+.proposal { font-weight: 700; color: var(--bad); }
+.log-queued-delete { background: var(--bad-soft); color: var(--bad); border-color: transparent; }

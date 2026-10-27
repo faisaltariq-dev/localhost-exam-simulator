@@ -17,7 +17,8 @@ MAX_NOTE_CHARS = 20000
 # Repairs log: one line per event, appended by the app (owner actions) or by an agent.
 #   2026-10-27 21:04 · #003 · owner · sent · pasted from Gemini, Q4 looked off
 LOG_LINE_RE = re.compile(r"^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*·\s*#(\d+)\s*·\s*([a-z]+)\s*·\s*([a-z-]+)\s*(?:·\s*(.*))?$")
-STATE_EVENTS = ("sent", "queued", "declined", "rejected", "approved")  # "note" and "failed" never change state
+STATE_EVENTS = ("sent", "queued", "queued-delete", "declined", "rejected", "approved")  # "note"/"failed" never do
+QUEUE_STATES = ("queued", "queued-delete")
 INBOX_STATES = ("sent", "declined", "rejected")
 DEFAULT_SETTINGS = {
     "schema_version": SCHEMA_VERSION,
@@ -246,7 +247,8 @@ class Store:
                 continue
             items.append({
                 "id": number, "folder": "repairs/%03d" % number, "state": state,
-                "where": "queue" if state == "queued" else "inbox",
+                "where": "queue" if state in QUEUE_STATES else "inbox",
+                "kind": "delete" if state == "queued-delete" else "fix",
                 "fix_ready": os.path.isfile(os.path.join(folder, "fixed.md")),
                 "latest": history[-1], "history": history,
             })
@@ -288,8 +290,11 @@ class Store:
         return {"id": number, "folder": "repairs/%03d" % number}
 
     def approve_repair(self, number):
+        """Load a queued fix, or carry out a queued delete proposal (a move to repairs/trash/)."""
         with self._lock:
             item = self._open_item(number)
+            if item["state"] == "queued-delete":
+                return self._trash_repair(number)
             fixed = os.path.join(self._repair_folder(number), "fixed.md")
             if item["state"] != "queued" or not os.path.isfile(fixed):
                 raise StoreError(400, "#%03d has no fix waiting for approval." % number)
@@ -303,9 +308,26 @@ class Store:
             self._log(number, "owner", "approved", "loaded as %s" % loaded["id"])
             return loaded
 
+    def _trash_repair(self, number):
+        # Never a real delete: the folder moves to repairs/trash/ and the owner empties it by hand.
+        trash = os.path.join(self.repairs_dir, "trash")
+        os.makedirs(trash, exist_ok=True)
+        target = os.path.join(trash, "%03d" % number)
+        n = 2
+        while os.path.exists(target):
+            target = os.path.join(trash, "%03d-%d" % (number, n))
+            n += 1
+        os.rename(self._repair_folder(number), target)
+        where = "repairs/trash/" + os.path.basename(target)
+        self._log(number, "owner", "approved", "moved to %s" % where)
+        return {"id": number, "deleted": True, "moved_to": where}
+
     def reject_repair(self, number, reason=""):
         with self._lock:
             item = self._open_item(number)
+            if item["state"] == "queued-delete":
+                self._log(number, "owner", "rejected", reason)
+                return
             folder = self._repair_folder(number)
             fixed = os.path.join(folder, "fixed.md")
             if item["state"] != "queued" or not os.path.isfile(fixed):

@@ -154,7 +154,8 @@ export function open(ctx, { onChange = () => {} } = {}) {
   }
 
   function queueItem(item) {
-    const queued = [...item.history].reverse().find((e) => e.event === 'queued');
+    const isDelete = item.kind === 'delete';
+    const queued = [...item.history].reverse().find((e) => e.event === (isDelete ? 'queued-delete' : 'queued'));
     const msg = queued ? queued.message : item.latest.message;
     const failed = item.latest.event === 'failed' ? h('p', { class: 'bad-text small' }, `Last approve failed: ${item.latest.message}`) : null;
     let actions;
@@ -170,12 +171,18 @@ export function open(ctx, { onChange = () => {} } = {}) {
     } else {
       actions = h('div', { class: 'paste-actions' },
         h('button', { class: 'btn', type: 'button', onclick: () => { view.rejecting = item.id; refreshRepairs(); } }, 'Reject'),
-        h('button', {
-          class: 'btn primary', type: 'button', disabled: !item.fix_ready,
-          onclick: () => act(() => ctx.api.approveRepair(item.id), (r) => `${tag(item.id)} approved and loaded as ${r.id}.`),
-        }, 'Approve'));
+        isDelete
+          ? h('button', {
+            class: 'btn danger', type: 'button',
+            onclick: () => act(() => ctx.api.approveRepair(item.id), (r) => `${tag(item.id)} moved to ${r.moved_to}/.`),
+          }, 'Delete')
+          : h('button', {
+            class: 'btn go', type: 'button', disabled: !item.fix_ready,
+            onclick: () => act(() => ctx.api.approveRepair(item.id), (r) => `${tag(item.id)} loaded as ${r.id}.`),
+          }, 'Load'));
     }
-    return h('li', { class: 'queue-item' },
+    return h('li', { class: `queue-item${isDelete ? ' delete' : ''}` },
+      isDelete ? h('div', { class: 'proposal small' }, 'Proposed: delete this request') : null,
       h('div', null, h('strong', { class: 'mono' }, tag(item.id)), ' ', msg),
       failed, actions);
   }
