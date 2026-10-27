@@ -19,7 +19,6 @@ DEFAULT_SETTINGS = {
     "style": "classic",
     "pass_mark_percent": 70,
     "duration_overrides": {},
-    "parse_issues": {},
 }
 
 
@@ -133,7 +132,7 @@ class Store:
         return settings
 
     def update_settings(self, data):
-        """Apply user-editable settings. parse_issues is managed by set_parse_issue only."""
+        """Apply user-editable settings."""
         if not isinstance(data, dict):
             raise StoreError(400, "Settings must be a JSON object")
         errors = []
@@ -175,17 +174,6 @@ class Store:
                 raise StoreError(400, errors=errors)
             write_json_atomic(self.settings_path, settings)
             return settings
-
-    def set_parse_issue(self, exam_id, flagged):
-        with self._lock:
-            self.load_exam(exam_id)
-            settings = self.load_settings()
-            if flagged:
-                settings["parse_issues"].setdefault(exam_id, now_iso())
-            else:
-                settings["parse_issues"].pop(exam_id, None)
-            write_json_atomic(self.settings_path, settings)
-            return {"id": exam_id, "flagged": bool(flagged), "flagged_at": settings["parse_issues"].get(exam_id)}
 
     # -- exams
 
@@ -239,16 +227,6 @@ class Store:
         return {"id": exam_id, "title": exam["title"], "question_count": len(exam["questions"]),
                 "domain_count": len(exam["domains"]), "duration_minutes": exam["duration_minutes"]}
 
-    def replace_exam(self, exam_id, new_exam):
-        """Used only by manage.py reconvert: swap in a re-parsed exam, keeping its history."""
-        with self._lock:
-            old = self.load_exam(exam_id)
-            new_exam = dict(new_exam)
-            new_exam["imported_at"] = old.get("imported_at")
-            new_exam["reconverted_at"] = now_iso()
-            write_json_atomic(self.exam_path(exam_id), new_exam)
-            return old, new_exam
-
     def raw_path_for(self, exam):
         return os.path.join(self.raw_dir, exam["source_file"])
 
@@ -262,7 +240,6 @@ class Store:
                     pass
             settings = self.load_settings()
             settings["duration_overrides"].pop(exam_id, None)
-            settings["parse_issues"].pop(exam_id, None)
             write_json_atomic(self.settings_path, settings)
 
     def exam_summaries(self):
@@ -287,7 +264,6 @@ class Store:
                 "attempts_brief": [{"number": a["number"], "score_percent": a["score_percent"],
                                     "paused": a["paused"], "overtime": a["overtime"]} for a in attempts],
                 "green_attempt": green_attempt(attempts, settings["pass_mark_percent"]),
-                "parse_issue": exam_id in settings["parse_issues"],
             })
         return out
 

@@ -164,13 +164,6 @@ class Handler(BaseHTTPRequestHandler):
             raise StoreError(400, "Body must be {\"revised\": true|false}")
         self.send_json(200, self.store.set_revised(exam_id, int(number), body["revised"]))
 
-    @route("PUT", r"/api/exams/" + ID + r"/parse-issue")
-    def put_parse_issue(self, exam_id):
-        body = self.read_json()
-        if not isinstance(body, dict) or not isinstance(body.get("flagged"), bool):
-            raise StoreError(400, "Body must be {\"flagged\": true|false}")
-        self.send_json(200, self.store.set_parse_issue(exam_id, body["flagged"]))
-
     @route("GET", r"/api/settings")
     def get_settings(self):
         self.send_json(200, self.store.load_settings())

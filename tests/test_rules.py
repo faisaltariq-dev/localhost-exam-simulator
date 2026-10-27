@@ -148,18 +148,16 @@ class StoreTest(unittest.TestCase):
             self.store.update_settings({"style": "fancy", "pass_mark_percent": 0})
         self.assertEqual(len(cm.exception.errors), 2)
 
-    def test_parse_issue_flag_and_delete(self):
+    def test_delete_removes_files_and_override(self):
         self.import_sample()
         self.store.update_settings({"duration_overrides": {"sample-demo-1": 5}})
-        self.assertTrue(self.store.set_parse_issue("sample-demo-1", True)["flagged"])
-        self.assertTrue(self.store.exam_summaries()[0]["parse_issue"])
         self.store.add_attempt("sample-demo-1", {"duration_minutes": 5, "elapsed_seconds": 1, "answers": {}})
         self.store.delete_exam("sample-demo-1")
         self.assertEqual(self.store.exam_ids(), [])
         self.assertEqual(os.listdir(self.store.raw_dir), [])
         self.assertEqual(os.listdir(self.store.attempts_dir), [])
         s = self.store.load_settings()
-        self.assertEqual((s["duration_overrides"], s["parse_issues"]), ({}, {}))
+        self.assertEqual(s["duration_overrides"], {})
 
     def test_bad_ids_never_touch_disk(self):
         for bad in ("../etc", "a-b", "x-y-0", ""):

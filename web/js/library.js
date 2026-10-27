@@ -231,8 +231,7 @@ function card(e, strip) {
     onclick: () => select(e.id),
   },
   h('div', { class: 'card-top' },
-    h('span', { class: 'tally' }, e.attempt_count ? tallySvg(e.attempt_count, greenIndex) : null),
-    e.parse_issue ? h('span', { class: 'flag', title: 'Parse issue flagged, waiting for a fix' }, '🔧') : null),
+    h('span', { class: 'tally' }, e.attempt_count ? tallySvg(e.attempt_count, greenIndex) : null)),
   h('div', { class: 'card-label' }, groupLabel(e.maker, e.exam)),
   h('div', { class: 'card-title' }, e.title),
   h('div', { class: 'card-meta mono' }, `${e.id} · ${e.question_count} q · ${e.duration_minutes} min`));
@@ -281,7 +280,7 @@ async function renderDetail() {
   clear(slot, h('div', { class: 'panel detail' },
     h('div', { class: 'panel-head' },
       h('div', null,
-        h('div', { class: 'card-label' }, `${groupLabel(exam.maker, exam.exam)} · ${exam.id}`, exam.parse_issue ? ' · 🔧 parse issue flagged' : ''),
+        h('div', { class: 'card-label' }, `${groupLabel(exam.maker, exam.exam)} · ${exam.id}`),
         h('h2', null, exam.title),
         h('div', { class: 'muted small' }, `${exam.question_count} questions · ${exam.domain_count} domains · ${exam.duration_minutes} min${timeNote}`)),
       h('button', { class: 'btn primary', type: 'button', onclick: go }, data.attempts.length ? 'Retake' : 'Start')),

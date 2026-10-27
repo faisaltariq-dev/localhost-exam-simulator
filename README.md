@@ -21,10 +21,6 @@ python3 server.py --port 9000
 
 Try it first with `samples/questions-and-answers-sample-demo-1.md`.
 
-## If an exam displays wrongly
-
-Toggle **Parse issue** (🔧) on that exam in Settings → Manage exams. Later, open any coding agent in this folder and say: *"Fix the flagged parse issues. Follow fix-parse-agent.md."*
-
 ## Files
 
 | Path | What it is |
@@ -34,7 +30,6 @@ Toggle **Parse issue** (🔧) on that exam in Settings → Manage exams. Later, 
 | `converter.py` | Parses and validates exam markdown. `python3 converter.py <file>` checks a file without importing it. |
 | `store.py` | Storage, scoring, domain scores, the green-tally rule. |
 | `server.py` | Local HTTP server and JSON API (127.0.0.1 only). |
-| `manage.py` | `list-flagged`, `reconvert <id>`, `unflag <id>`. |
 | `web/` | The single-page app (`js/library.js`, `exam.js`, `results.js`, `settings.js`). |
 | `exams/`, `data/` | Your imported exams, attempts and settings (not tracked by git). |
 

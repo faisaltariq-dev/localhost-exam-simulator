@@ -37,7 +37,6 @@ export const api = {
   getAttempts: (id) => request('GET', `/api/exams/${enc(id)}/attempts`),
   postAttempt: (id, attempt) => request('POST', `/api/exams/${enc(id)}/attempts`, attempt),
   setRevised: (id, n, revised) => request('PATCH', `/api/exams/${enc(id)}/attempts/${n}`, { revised }),
-  setParseIssue: (id, flagged) => request('PUT', `/api/exams/${enc(id)}/parse-issue`, { flagged }),
   getSettings: () => request('GET', '/api/settings'),
   putSettings: (settings) => request('PUT', '/api/settings', settings),
   getPrompt: () => request('GET', '/prompt-for-exam.md'),
