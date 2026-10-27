@@ -355,7 +355,7 @@ table.manage { min-width: 600px; }
 .icon-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; }
 
 /* The three intake boxes (file drop, paste, prompt text) share one height. */
-.intake { --intake-h: 92px; }
+.intake { --intake-h: 207px; }  /* 2.25 × the original 92px */
 .intake .dropzone { height: var(--intake-h); min-height: 0; }
 .intake-box .paste-area { height: var(--intake-h); min-height: 0; resize: none; }
 .intake .prompt-text { height: var(--intake-h); max-height: none; }
