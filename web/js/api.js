@@ -40,7 +40,7 @@ export const api = {
   setRevised: (id, n, revised) => request('PATCH', `/api/exams/${enc(id)}/attempts/${n}`, { revised }),
   getSettings: () => request('GET', '/api/settings'),
   putSettings: (settings) => request('PUT', '/api/settings', settings),
-  getPrompt: () => request('GET', '/prompt-for-exam.md'),
+  getPrompt: () => request('GET', '/prompt-exam-parsable-output.md'),
   load: (text, filename = '') => request('POST', `/api/upload?filename=${enc(filename)}`, text, true),
   repairs: () => request('GET', '/api/repairs'),
   sendToRepairs: (text, reason) => request('POST', '/api/repairs', { text, reason }),

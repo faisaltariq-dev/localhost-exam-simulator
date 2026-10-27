@@ -13,8 +13,8 @@ cd localhost-exam-simulator && cat run.txt | sh
 Then open http://localhost:8000. Stop it with `Ctrl+C`. Python 3.9+ is all you need: no installs, no build step, and it works offline.
 
 **Get an exam.**
-1. In the library, press **Copy** on the `prompt-for-exam.md` block.
-2. Ask any AI for an exam and paste the prompt with your request, e.g. *"GCP ADP, extra difficult, at least one very close distractor per question. Follow this prompt-for-exam.md for the exact output file structure."*
+1. In the library, press **Copy** on the `prompt-exam-parsable-output.md` block.
+2. Ask any AI for an exam and paste the prompt with your request, e.g. *"GCP ADP, extra difficult, at least one very close distractor per question. Follow this prompt-exam-parsable-output.md for the exact output file structure."*
 3. Load the reply: drop or choose the saved `.md` file in the library box, or switch it to **Paste** and paste the text, then press **Load**. The file name doesn't matter. The header at the top of the exam decides what it is and which column it goes in. To try it first, use `samples/questions-and-answers-sample-demo-1.md`.
 
 **Take it.** Pick the exam in the library and press **Start** (later **Retake**).
@@ -87,7 +87,7 @@ flowchart TB
 ```
 
 ### The exam file
-Your message to the AI sets the content and difficulty, and `prompt-for-exam.md` fixes the structure. Every answer names its domain, which is what drives the per-domain score.
+Your message to the AI sets the content and difficulty, and `prompt-exam-parsable-output.md` fixes the structure. Every answer names its domain, which is what drives the per-domain score.
 
 ```markdown
 ---
@@ -141,7 +141,7 @@ Explanation: Why C is right, and why A, B and D are wrong.
 | Path | What it is |
 |---|---|
 | `run.txt` | The one command that starts the app |
-| `prompt-for-exam.md` | The format spec you give to the exam-writing AI |
+| `prompt-exam-parsable-output.md` | The format spec you give to the exam-writing AI |
 | `.FIXPARSE.MD` | Instructions for any coding agent working through Repairs |
 | `converter.py` | Parses and validates exam markdown |
 | `store.py` | Storage, scoring, domain scores, the green-tally rule, Repairs and its log |

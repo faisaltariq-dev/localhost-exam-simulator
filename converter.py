@@ -1,4 +1,4 @@
-"""Parse and validate exam markdown files written to the prompt-for-exam.md format.
+"""Parse and validate exam markdown files written to the prompt-exam-parsable-output.md format.
 
 Pure functions only: nothing here touches the filesystem except the CLI at the bottom,
 which reads one file and prints the result.

@@ -16,7 +16,7 @@ from store import Store, StoreError
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(ROOT, "web")
-PROMPT_PATH = os.path.join(ROOT, "prompt-for-exam.md")
+PROMPT_PATH = os.path.join(ROOT, "prompt-exam-parsable-output.md")
 MAX_BODY = 10 * 1024 * 1024
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -124,7 +124,7 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- routes
 
-    @route("GET", r"/prompt-for-exam\.md")
+    @route("GET", r"/prompt-exam-parsable-output\.md")
     def get_prompt(self):
         self.send_file(PROMPT_PATH)
 

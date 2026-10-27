@@ -235,10 +235,10 @@ function promptBlock() {
   const details = h('details', { class: 'prompt panel', open: true },
     h('summary', { class: 'prompt-head' },
       h('span', { class: 'caret', 'aria-hidden': 'true' }, '▶'),
-      h('span', { class: 'mono prompt-name' }, 'prompt-for-exam.md'),
+      h('span', { class: 'mono prompt-name' }, 'prompt-exam-parsable-output.md'),
       h('span', { class: 'muted small prompt-desc' }, 'Format spec to give any AI with your exam request'),
       renderSwitch,
-      downloadButton(() => state.promptText, 'prompt-for-exam.md'),
+      downloadButton(() => state.promptText, 'prompt-exam-parsable-output.md'),
       copy),
     pre, rendered);
   state.els.promptPre = pre;
@@ -254,7 +254,7 @@ async function loadPrompt() {
     state.promptText = await state.ctx.api.getPrompt();
     if (state) state.els.promptPre.textContent = state.promptText;
   } catch (e) {
-    if (state) state.els.promptPre.textContent = 'Could not load prompt-for-exam.md';
+    if (state) state.els.promptPre.textContent = 'Could not load prompt-exam-parsable-output.md';
   }
 }
 

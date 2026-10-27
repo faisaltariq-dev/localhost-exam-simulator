@@ -1,4 +1,4 @@
-# prompt-for-exam.md
+# prompt-exam-parsable-output.md
 
 This file defines the exact output format for a practice exam that will be loaded into my local exam simulator. Follow my message for the content, topics and difficulty, and follow this file only for the structure.
 
