@@ -1,7 +1,7 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
 import {
   h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste, confirmDialog,
-  examMatcher, copyButton, selectText,
+  examMatcher, copyButton, selectText, icon,
 } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
@@ -39,7 +39,7 @@ async function reload() {
   if (!state) return;
   state.exams = exams;
   const open = repairs.inbox.length + repairs.queue.length;
-  state.els.settingsBtn.textContent = open ? `⚙ Settings · ${open}` : '⚙ Settings';
+  state.els.settingsLabel.textContent = open ? `Settings · ${open}` : 'Settings';
   state.els.settingsBtn.title = open ? `Repairs: ${repairs.inbox.length} in the inbox, ${repairs.queue.length} in the queue` : '';
   if (!state.exams.some((e) => e.id === state.selected)) state.selected = state.exams.length ? state.exams[0].id : '';
   renderBoard();
@@ -63,7 +63,8 @@ function topbar() {
   return h('header', { class: 'topbar' },
     h('span', { class: 'brand' }, 'Exam Simulator'),
     search, seg,
-    state.els.settingsBtn = h('button', { class: 'btn', type: 'button', onclick: openSettings }, '⚙ Settings'));
+    state.els.settingsBtn = h('button', { class: 'btn icon-btn', type: 'button', onclick: openSettings },
+      icon('gear'), state.els.settingsLabel = h('span', null, 'Settings')));
 }
 
 function page() {
