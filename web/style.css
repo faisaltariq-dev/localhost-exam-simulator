@@ -370,3 +370,9 @@ table.manage { min-width: 600px; }
 .prompt-rendered hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
 .prompt-rendered pre { margin: 6px 0; }
 .prompt-render { margin-right: 4px; }
+
+/* Exam tips: a faint watermark that only appears while the prompt block is collapsed */
+.prompt-col { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.exam-tips { color: var(--muted); opacity: 0.6; font-size: 13px; line-height: 1.5; padding: 2px 6px; user-select: none; }
+.exam-tips ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.exam-tips strong { font-weight: 700; }

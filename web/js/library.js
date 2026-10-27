@@ -5,6 +5,13 @@ import {
 } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
+// Shown faintly in the space a collapsed prompt block frees up.
+const EXAM_TIPS = `1. **Read the last sentence first.** Know what's being asked before reading the scenario.
+2. **Scan the options early.** Identify the concepts you need to focus on.
+3. **Eliminate wrong answers.** Narrow down your choices before deciding.
+4. **Spot keywords.** BEST, FIRST, NOT, and LEAST can change everything.
+5. **True ≠ Correct.** Choose what answers the question, not just what's technically true.
+6. **Stuck between two?** Compare their differences against the scenario's requirements.`;
 const SELECTED_KEY = 'examsim.selected';
 let state = null;
 
@@ -235,7 +242,11 @@ function promptBlock() {
       copy),
     pre, rendered);
   state.els.promptPre = pre;
-  return details;
+  const tips = h('div', { class: 'exam-tips', 'aria-label': 'Exam tips' }, markdown(EXAM_TIPS));
+  const syncTips = () => { tips.hidden = details.open; };
+  details.addEventListener('toggle', syncTips);
+  syncTips();
+  return h('div', { class: 'prompt-col' }, details, tips);
 }
 
 async function loadPrompt() {
