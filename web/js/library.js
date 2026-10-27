@@ -1,7 +1,7 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
 import {
   h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste, confirmDialog,
-  examMatcher, copyButton, selectText, icon,
+  examMatcher, copyButton, selectText, icon, downloadButton,
 } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
@@ -211,6 +211,7 @@ function promptBlock() {
       h('span', { class: 'caret', 'aria-hidden': 'true' }, '▶'),
       h('span', { class: 'mono prompt-name' }, 'prompt-for-exam.md'),
       h('span', { class: 'muted small prompt-desc' }, 'Format spec to give any AI with your exam request'),
+      downloadButton(() => state.promptText, 'prompt-for-exam.md'),
       copy),
     pre);
   state.els.promptPre = pre;

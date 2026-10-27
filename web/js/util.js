@@ -150,6 +150,7 @@ const ICONS = {
   copy: [['rect', { x: 9, y: 9, width: 12, height: 12, rx: 2 }],
     ['path', { d: 'M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5' }]],
   check: [['path', { d: 'M20 6 9 17l-5-5' }]],
+  download: [['path', { d: 'M12 3v12' }], ['path', { d: 'm7 10 5 5 5-5' }], ['path', { d: 'M5 21h14' }]],
   gear: [['path', { d: gearPath() }], ['circle', { cx: 12, cy: 12, r: 3 }]],
 };
 
@@ -203,6 +204,23 @@ export function copyButton(getText, onBlocked) {
     reset();
   });
   return btn;
+}
+
+// An icon-only button that saves text as a file, built in the page (no server round trip).
+export function downloadButton(getText, filename) {
+  return h('button', {
+    class: 'btn icon-btn', type: 'button', title: `Download ${filename}`, 'aria-label': `Download ${filename}`,
+    onclick: (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = URL.createObjectURL(new Blob([getText()], { type: 'text/markdown;charset=utf-8' }));
+      const a = h('a', { href: url, download: filename });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+  }, icon('download'));
 }
 
 // Selects all text inside el (used when the clipboard API is refused).
