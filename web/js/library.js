@@ -246,7 +246,16 @@ function promptBlock() {
   const syncTips = () => { tips.hidden = details.open; };
   details.addEventListener('toggle', syncTips);
   syncTips();
-  return h('div', { class: 'prompt-col' }, details, tips);
+  const col = h('div', { class: 'prompt-col' }, details, tips);
+  // The header wraps on narrower windows; publish its height so the left box can match the
+  // expanded prompt, and folding the prompt never moves what sits below the intake row.
+  const head = details.querySelector('summary');
+  const sync = new ResizeObserver(() => {
+    if (col.parentElement) col.parentElement.style.setProperty('--prompt-head-h', `${head.offsetHeight}px`);
+  });
+  sync.observe(head);
+  sync.observe(col);  // also fires once the block is attached to the page
+  return col;
 }
 
 async function loadPrompt() {

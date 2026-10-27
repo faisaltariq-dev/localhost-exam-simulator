@@ -360,6 +360,12 @@ table.manage { min-width: 600px; }
 .intake-box .paste-area { height: var(--intake-h); min-height: 0; resize: none; }
 .intake .prompt-text { height: var(--intake-h); max-height: none; }
 .intake .prompt-head { padding-block: 5px; }  /* header + box ends level with the File | Paste row */
+/* Side by side, the left column is as tall as the expanded prompt (header + box + 2px border),
+   whether the prompt is open or folded; the drop zone / paste area take up the slack. */
+@media (min-width: 761px) {
+  .intake-box { min-height: calc(var(--prompt-head-h, 0px) + var(--intake-h) + 2px); grid-template-rows: 1fr auto; }
+  .intake .dropzone, .intake-box .paste-area { height: auto; min-height: var(--intake-h); align-self: stretch; }
+}
 
 /* Rendered prompt view (same box height as the raw text) */
 .intake .prompt-rendered { height: var(--intake-h); overflow: auto; padding: 6px 14px 10px; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
