@@ -201,21 +201,18 @@ class Store:
     def import_exam(self, filename, text):
         """Validate and save an uploaded exam. All or nothing; never overwrites."""
         filename = os.path.basename(filename or "")
-        if converter.parse_filename(filename) is None:
-            raise StoreError(400, errors=[
-                'Filename "%s" must look like questions-and-answers-<maker>-<exam>-<number>.md' % filename])
         with self._lock:
-            # The ID comes from the header (hyphens and case ignored), so parse before the duplicate check.
+            # The ID comes from the header (hyphens and case ignored); the filename is only recorded.
             result = converter.parse_exam(filename, text)
             if not result.ok:
                 raise StoreError(422, errors=result.errors)
             exam = result.exam
             exam_id = exam["id"]
-            raw_path = os.path.join(self.raw_dir, filename)
+            raw_path = os.path.join(self.raw_dir, exam_id + ".md")
             if os.path.exists(self.exam_path(exam_id)) or os.path.exists(raw_path):
-                raise StoreError(409, "%s already exists. Upload it under a new number "
-                                      "(e.g. ...-%d.md) or delete the old one in Settings."
-                                 % (exam_id, exam["exam_number"] + 1))
+                raise StoreError(409, "%s already exists. Set exam_number: %d in its header, "
+                                      "or delete the old one in Settings." % (exam_id, exam["exam_number"] + 1))
+            exam["raw_file"] = exam_id + ".md"
             exam["imported_at"] = now_iso()
             with open(raw_path, "x", encoding="utf-8", newline="") as f:
                 f.write(text)
@@ -228,7 +225,8 @@ class Store:
                 "domain_count": len(exam["domains"]), "duration_minutes": exam["duration_minutes"]}
 
     def raw_path_for(self, exam):
-        return os.path.join(self.raw_dir, exam["source_file"])
+        # Exams imported before raw files were named by ID still use their original filename.
+        return os.path.join(self.raw_dir, exam.get("raw_file") or exam["source_file"])
 
     def delete_exam(self, exam_id):
         with self._lock:

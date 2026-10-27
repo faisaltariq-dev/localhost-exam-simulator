@@ -101,10 +101,13 @@ class StoreTest(unittest.TestCase):
             self.store.import_exam("questions-and-answers-sample-clouddata-1.md", text)
         self.assertEqual(cm.exception.status, 409)
 
-    def test_bad_filename_and_invalid_write_nothing(self):
-        with self.assertRaises(StoreError) as cm:
-            self.store.import_exam("exam.md", read_sample(SAMPLE))
-        self.assertEqual(cm.exception.status, 400)
+    def test_any_filename_and_pasted_text_import(self):
+        self.assertEqual(self.store.import_exam("exam.md", read_sample(SAMPLE))["id"], "sample-demo-1")
+        self.assertEqual(os.listdir(self.store.raw_dir), ["sample-demo-1.md"])
+        self.store.delete_exam("sample-demo-1")
+        self.assertEqual(self.store.import_exam("", read_sample(SAMPLE))["id"], "sample-demo-1")
+
+    def test_invalid_writes_nothing(self):
         name = "questions-and-answers-badchoices-demo-1.md"
         with self.assertRaises(StoreError) as cm:
             self.store.import_exam(name, read_sample("broken", name))

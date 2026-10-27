@@ -12,9 +12,7 @@ VALID = "questions-and-answers-sample-demo-1.md"
 
 # broken sample file -> substrings that must all appear in the reported errors
 BROKEN = {
-    "questions-and-answers-sample-demo.md": ["Filename:"],
     "questions-and-answers-badheader-demo-1.md": ["Header: domain_count is missing"],
-    "questions-and-answers-badmismatch-demo-1.md": ["Header: exam_number is 2 but filename says 1"],
     "questions-and-answers-badsections-demo-1.md": ['"# Questions" appears 2 times'],
     "questions-and-answers-baddomains-demo-1.md": ["Domains: listed 2 but domain_count is 3"],
     "questions-and-answers-badchoices-demo-1.md": ["Q2: found 3 choices, need 4"],
@@ -23,7 +21,6 @@ BROKEN = {
     "questions-and-answers-baddomainref-demo-1.md": ['Q4: domain "D9" is not in # Domains'],
     "questions-and-answers-badexplanation-demo-1.md": ["Q5: explanation is empty"],
     "questions-and-answers-badmany-demo-1.md": [
-        "Header: exam_number is 2 but filename says 1",
         "Q2: found 3 choices, need 4",
         'Q5: answer "E" is not A–D',
     ],
@@ -115,20 +112,8 @@ class LenientParsingTest(unittest.TestCase):
         self.assertTrue(any(e.startswith("Header: missing") for e in errors))
 
 
-class FilenameTest(unittest.TestCase):
-    def test_name_part_and_number(self):
-        self.assertEqual(converter.parse_filename("questions-and-answers-gcp-adp-12.md"), ("gcp-adp", 12))
-        self.assertEqual(converter.parse_filename("questions-and-answers-SAMPLE-Cloud-Data-1.md"),
-                         ("SAMPLE-Cloud-Data", 1))
-
-    def test_rejects(self):
-        for bad in ("questions-and-answers-gcp-adp-0.md", "questions-and-answers-gcp--adp-1.md",
-                    "questions-and-answers-1.md", "qa-gcp-adp-1.md", "questions-and-answers-gcp-adp-1.txt"):
-            self.assertIsNone(converter.parse_filename(bad), bad)
-
-
 class HyphenatedNamesTest(unittest.TestCase):
-    """Hyphens and case in exam_maker/exam_name are ignored; the header decides the split."""
+    """Hyphens and case in exam_maker/exam_name are ignored; the header alone decides the ID."""
     NAME = "questions-and-answers-sample-cloud-data-1.md"
 
     def setUp(self):
@@ -141,15 +126,12 @@ class HyphenatedNamesTest(unittest.TestCase):
         self.assertEqual((e["id"], e["exam_maker"], e["exam_name"]), ("sample-clouddata-1", "sample", "clouddata"))
         self.assertEqual(len(e["domains"]), 3)
 
-    def test_filename_without_hyphens_and_other_case_also_matches(self):
-        for name in ("questions-and-answers-sample-clouddata-1.md", "questions-and-answers-SAMPLE-Cloud-Data-1.md"):
+    def test_filename_is_ignored(self):
+        for name in ("questions-and-answers-sample-ml-data-7.md", "Download (3).md", ""):
             result = converter.parse_exam(name, self.text)
             self.assertTrue(result.ok, result.errors)
             self.assertEqual(result.exam["id"], "sample-clouddata-1")
-
-    def test_real_mismatch_still_rejected(self):
-        errors = converter.parse_exam("questions-and-answers-sample-ml-data-1.md", self.text).errors
-        self.assertTrue(any("don't match the filename" in e for e in errors), errors)
+        self.assertEqual(converter.parse_exam("", self.text).exam["source_file"], "pasted text")
 
     def test_other_characters_rejected(self):
         text = self.text.replace("exam_name: cloud-data", "exam_name: cloud data")

@@ -11,8 +11,8 @@ import sys
 
 SCHEMA_VERSION = 1
 
-# The name part may contain hyphens and any case; which hyphen splits maker from exam comes
-# from the header, never from guessing at the filename.
+# Only used to skip the filename line an AI often writes above a pasted reply. The filename
+# never decides anything: identity and grouping come from the header.
 FILENAME_RE = re.compile(r"^questions-and-answers-([a-z0-9]+(?:-[a-z0-9]+)*)-([1-9][0-9]*)\.md$", re.I)
 NAME_RE = re.compile(r"^[a-z0-9]+$")
 EXAM_ID_RE = re.compile(r"^[a-z0-9]+-[a-z0-9]+-[1-9][0-9]*$")
@@ -39,14 +39,6 @@ class ParseResult:
     @property
     def ok(self):
         return not self.errors
-
-
-def parse_filename(filename):
-    """Return (name part, number) or None, e.g. ("sample-cloud-data", 1)."""
-    m = FILENAME_RE.match(filename)
-    if not m:
-        return None
-    return m.group(1), int(m.group(2))
 
 
 def normalise_name(value):
@@ -255,11 +247,11 @@ def _parse_answer(number, lines, domain_ids, errors):
 
 
 def parse_exam(filename, text):
-    """Parse and validate one exam file. Always returns a ParseResult with every error found."""
+    """Parse and validate one exam. Always returns a ParseResult with every error found.
+
+    filename is only recorded (it may be empty for pasted text); the exam ID comes from the header.
+    """
     errors = []
-    parts = parse_filename(filename)
-    if parts is None:
-        errors.append('Filename: "%s" must look like questions-and-answers-<maker>-<exam>-<number>.md' % filename)
 
     lines = _normalise(text)
     header, body_start = _parse_header(lines, errors)
@@ -275,17 +267,9 @@ def parse_exam(filename, text):
             errors.append('Header: %s must be a positive whole number (got "%s")' % (field, header[field]))
     maker = normalise_name(header.get("exam_maker", ""))
     name = normalise_name(header.get("exam_name", ""))
-    names_ok = True
     for field, value in (("exam_maker", maker), ("exam_name", name)):
         if header.get(field) and not NAME_RE.match(value):
             errors.append('Header: %s may only use letters, digits and hyphens (got "%s")' % (field, header[field]))
-            names_ok = False
-    if parts is not None:
-        if names_ok and maker and name and normalise_name(parts[0]) != maker + name:
-            errors.append('Header: exam_maker + exam_name ("%s" + "%s") don\'t match the filename "%s" '
-                          "(hyphens and case are ignored)" % (header["exam_maker"], header["exam_name"], parts[0]))
-        if exam_number is not None and exam_number != parts[1]:
-            errors.append("Header: exam_number is %d but filename says %d" % (exam_number, parts[1]))
 
     sections, order = _split_sections(lines, body_start, errors)
     for sec in SECTION_ORDER:
@@ -334,7 +318,7 @@ def parse_exam(filename, text):
         "title": header["title"],
         "duration_minutes": duration,
         "domains": domains,
-        "source_file": filename,
+        "source_file": filename or "pasted text",
         "questions": [
             {"number": q["number"], "text": q["text"], "choices": q["choices"],
              "answer": q["answer"], "domain": q["domain"], "explanation": q["explanation"]}
