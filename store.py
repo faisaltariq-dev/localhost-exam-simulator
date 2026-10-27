@@ -15,6 +15,12 @@ import converter
 SCHEMA_VERSION = 1
 MAX_NOTE_CHARS = 20000
 INBOX_NAME_RE = re.compile(r"^inbox-(\d+)\.md$")
+
+# Repairs log: one line per event, appended by the app (owner actions) or by an agent.
+#   2026-10-27 21:04 · #003 · owner · sent · pasted from Gemini, Q4 looked off
+LOG_LINE_RE = re.compile(r"^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*·\s*#(\d+)\s*·\s*([a-z]+)\s*·\s*([a-z-]+)\s*(?:·\s*(.*))?$")
+STATE_EVENTS = ("sent", "queued", "declined", "rejected", "approved")  # "note" and "failed" never change state
+INBOX_STATES = ("sent", "declined", "rejected")
 DEFAULT_SETTINGS = {
     "schema_version": SCHEMA_VERSION,
     "theme": "light",
@@ -27,11 +33,12 @@ DEFAULT_SETTINGS = {
 class StoreError(Exception):
     """An error the HTTP layer can return as-is: status code plus a message or an error list."""
 
-    def __init__(self, status, message=None, errors=None):
+    def __init__(self, status, message=None, errors=None, extra=None):
         super().__init__(message or "; ".join(errors or []))
         self.status = status
         self.message = message
         self.errors = errors
+        self.extra = extra or {}
 
 
 def now_iso():
@@ -90,6 +97,25 @@ def green_attempt(attempts, pass_mark_percent):
     return qualifying[-1]["number"] if qualifying else None
 
 
+def _same_exam(a, b):
+    return all(a.get(k) == b.get(k) for k in ("title", "duration_minutes", "domains", "questions"))
+
+
+def parse_log(text):
+    """Return log entries in order. Lines that don't match the format are kept with id None."""
+    entries = []
+    for raw in text.splitlines():
+        if not raw.strip():
+            continue
+        m = LOG_LINE_RE.match(raw)
+        if m:
+            entries.append({"time": m.group(1), "id": int(m.group(2)), "who": m.group(3), "event": m.group(4),
+                            "message": (m.group(5) or "").strip(), "raw": raw})
+        else:
+            entries.append({"time": None, "id": None, "who": None, "event": None, "message": raw.strip(), "raw": raw})
+    return entries
+
+
 def effective_duration(exam, settings):
     return settings.get("duration_overrides", {}).get(exam["id"], exam["duration_minutes"])
 
@@ -107,7 +133,10 @@ class Store:
         # Files the library rejected wait here for an agent (see .FIXPARSE.MD); fixed ones go to ready/.
         self.inbox_dir = os.path.join(root, "parse-inbox")
         self.ready_dir = os.path.join(self.inbox_dir, "ready")
-        for d in (self.raw_dir, self.attempts_dir, self.inbox_dir):
+        # Exams that failed to load, one numbered folder each, plus an append-only log (see .FIXPARSE.MD).
+        self.repairs_dir = os.path.join(root, "repairs")
+        self.repairs_log = os.path.join(self.repairs_dir, "log.md")
+        for d in (self.raw_dir, self.attempts_dir, self.inbox_dir, self.repairs_dir):
             os.makedirs(d, exist_ok=True)
         self._lock = threading.RLock()
 
@@ -209,6 +238,127 @@ class Store:
         status.update({"file": name, "errors": result.errors})
         return status
 
+    # -- repairs
+
+    def _repair_folder(self, number):
+        return os.path.join(self.repairs_dir, "%03d" % number)
+
+    def read_repairs_log(self):
+        try:
+            with open(self.repairs_log, encoding="utf-8") as f:
+                return parse_log(f.read())
+        except FileNotFoundError:
+            return []
+
+    def _log(self, number, who, event, message=""):
+        message = " / ".join(line.strip() for line in str(message).splitlines() if line.strip())
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        line = "%s · #%03d · %s · %s · %s" % (stamp, number, who, event, message)
+        needs_newline = False  # an agent may have appended its last line without a newline
+        if os.path.exists(self.repairs_log) and os.path.getsize(self.repairs_log) > 0:
+            with open(self.repairs_log, "rb") as f:
+                f.seek(-1, os.SEEK_END)
+                needs_newline = f.read(1) != b"\n"
+        with open(self.repairs_log, "a", encoding="utf-8") as f:
+            f.write(("\n" if needs_newline else "") + line.rstrip() + "\n")
+
+    def repairs_status(self):
+        """Open items (inbox + queue), their history, and the whole log. State comes from the log."""
+        entries = self.read_repairs_log()
+        by_id = {}
+        for e in entries:
+            if e["id"] is not None:
+                by_id.setdefault(e["id"], []).append(e)
+        items = []
+        for number, history in sorted(by_id.items()):
+            folder = self._repair_folder(number)
+            if not os.path.isdir(folder):
+                continue  # deleted by hand: closed
+            states = [e["event"] for e in history if e["event"] in STATE_EVENTS]
+            state = states[-1] if states else "sent"
+            if state == "approved":
+                continue
+            items.append({
+                "id": number, "folder": "repairs/%03d" % number, "state": state,
+                "where": "queue" if state == "queued" else "inbox",
+                "fix_ready": os.path.isfile(os.path.join(folder, "fixed.md")),
+                "latest": history[-1], "history": history,
+            })
+        return {"inbox": [i["id"] for i in items if i["where"] == "inbox"],
+                "queue": [i["id"] for i in items if i["where"] == "queue"],
+                "items": items, "log": entries}
+
+    def _open_item(self, number):
+        for item in self.repairs_status()["items"]:
+            if item["id"] == number:
+                return item
+        raise StoreError(404, "#%03d is not open in Repairs" % number)
+
+    def send_to_repairs(self, text, reason=""):
+        """Save an exam that failed to load as repairs/NNN/, log it, and return its number."""
+        if not (text or "").strip():
+            raise StoreError(400, "Nothing to send: the file or text is empty.")
+        result = converter.parse_exam("", text)
+        if result.ok:
+            existing = read_json(self.exam_path(result.exam["id"]))
+            if existing is None:
+                raise StoreError(400, "This exam loads fine. Load it in the library instead.")
+            if _same_exam(existing, result.exam):
+                raise StoreError(400, "Already in your library as %s." % result.exam["id"])
+            reasons = ["%s already exists with different questions." % result.exam["id"]]
+        else:
+            reasons = result.errors
+        with self._lock:
+            used = [e["id"] for e in self.read_repairs_log() if e["id"] is not None]
+            used += [int(n) for n in os.listdir(self.repairs_dir) if n.isdigit()]
+            number = max(used, default=0) + 1
+            folder = self._repair_folder(number)
+            os.makedirs(folder)
+            with open(os.path.join(folder, "exam.md"), "x", encoding="utf-8", newline="") as f:
+                f.write(text)
+            with open(os.path.join(folder, "reasons.txt"), "x", encoding="utf-8") as f:
+                f.write("\n".join(reasons) + "\n")
+            self._log(number, "owner", "sent", reason)
+        return {"id": number, "folder": "repairs/%03d" % number}
+
+    def approve_repair(self, number):
+        with self._lock:
+            item = self._open_item(number)
+            fixed = os.path.join(self._repair_folder(number), "fixed.md")
+            if item["state"] != "queued" or not os.path.isfile(fixed):
+                raise StoreError(400, "#%03d has no fix waiting for approval." % number)
+            with open(fixed, encoding="utf-8") as f:
+                text = f.read()
+            try:
+                loaded = self.import_exam("repairs-%03d-fixed.md" % number, text)
+            except StoreError as e:
+                self._log(number, "app", "failed", e.message or "; ".join(e.errors or []))
+                raise
+            self._log(number, "owner", "approved", "loaded as %s" % loaded["id"])
+            return loaded
+
+    def reject_repair(self, number, reason=""):
+        with self._lock:
+            item = self._open_item(number)
+            folder = self._repair_folder(number)
+            fixed = os.path.join(folder, "fixed.md")
+            if item["state"] != "queued" or not os.path.isfile(fixed):
+                raise StoreError(400, "#%03d has no fix waiting for approval." % number)
+            n = 1
+            while os.path.exists(os.path.join(folder, "fixed-rejected-%d.md" % n)):
+                n += 1
+            os.rename(fixed, os.path.join(folder, "fixed-rejected-%d.md" % n))
+            self._log(number, "owner", "rejected", reason)
+
+    def note_repair(self, number, text):
+        if not (text or "").strip():
+            raise StoreError(400, "Write something to add to the log.")
+        with self._lock:
+            item = self._open_item(number)
+            if item["where"] != "inbox":
+                raise StoreError(400, "Notes go on inbox items. For a queued fix, reject it with a reason.")
+            self._log(number, "owner", "note", text)
+
     # -- exams
 
     def exam_ids(self):
@@ -243,9 +393,13 @@ class Store:
             exam = result.exam
             exam_id = exam["id"]
             raw_path = os.path.join(self.raw_dir, exam_id + ".md")
-            if os.path.exists(self.exam_path(exam_id)) or os.path.exists(raw_path):
-                raise StoreError(409, "%s already exists. Set exam_number: %d in its header, "
-                                      "or delete the old one in Settings." % (exam_id, exam["exam_number"] + 1))
+            existing = read_json(self.exam_path(exam_id))
+            if existing is not None and _same_exam(existing, exam):
+                raise StoreError(409, "Already in your library as %s." % exam_id, extra={"duplicate": "identical"})
+            if existing is not None or os.path.exists(raw_path):
+                raise StoreError(409, "%s already exists with different questions. Set exam_number: %d in its "
+                                      "header, or delete the old one in Settings." % (exam_id, exam["exam_number"] + 1),
+                                 extra={"duplicate": "different"})
             exam["raw_file"] = exam_id + ".md"
             exam["imported_at"] = now_iso()
             with open(raw_path, "x", encoding="utf-8", newline="") as f:

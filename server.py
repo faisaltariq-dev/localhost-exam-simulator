@@ -93,6 +93,7 @@ class Handler(BaseHTTPRequestHandler):
             raise StoreError(404, "Not found")
         except StoreError as e:
             body = {"errors": e.errors} if e.errors else {"error": e.message}
+            body.update(e.extra)
             self.send_json(e.status, body)
         except Exception as e:  # keep the server alive and say what happened
             self.log_message("ERROR %r", e)
@@ -175,6 +176,33 @@ class Handler(BaseHTTPRequestHandler):
         except UnicodeDecodeError:
             raise StoreError(400, "The file must be UTF-8 text")
         self.send_json(201, self.store.add_to_inbox(text))
+
+    @route("GET", r"/api/repairs")
+    def get_repairs(self):
+        self.send_json(200, self.store.repairs_status())
+
+    @route("POST", r"/api/repairs")
+    def post_repairs(self):
+        body = self.read_json()
+        if not isinstance(body, dict) or not isinstance(body.get("text"), str):
+            raise StoreError(400, "Body must be {\"text\": \"...\", \"reason\": \"...\"}")
+        self.send_json(201, self.store.send_to_repairs(body["text"], str(body.get("reason") or "")))
+
+    @route("POST", r"/api/repairs/([1-9][0-9]*)/approve")
+    def approve_repair(self, number):
+        self.send_json(200, self.store.approve_repair(int(number)))
+
+    @route("POST", r"/api/repairs/([1-9][0-9]*)/reject")
+    def reject_repair(self, number):
+        body = self.read_json() or {}
+        self.store.reject_repair(int(number), str(body.get("reason") or ""))
+        self.send_json(200, {"ok": True})
+
+    @route("POST", r"/api/repairs/([1-9][0-9]*)/note")
+    def note_repair(self, number):
+        body = self.read_json() or {}
+        self.store.note_repair(int(number), str(body.get("text") or ""))
+        self.send_json(200, {"ok": True})
 
     @route("GET", r"/api/settings")
     def get_settings(self):

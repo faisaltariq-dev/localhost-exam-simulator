@@ -175,6 +175,16 @@ class StoreTest(unittest.TestCase):
         second = self.store.add_to_inbox(broken)  # numbering continues past files moved to ready/
         self.assertEqual((second["file"], second["waiting"], second["ready"]), ("inbox-002.md", 1, 1))
 
+    def test_identical_duplicate_is_reported_as_already_there(self):
+        self.import_sample()
+        with self.assertRaises(StoreError) as cm:
+            self.import_sample()
+        self.assertEqual(cm.exception.extra, {"duplicate": "identical"})
+        changed = read_sample(SAMPLE).replace("Answer: B\nDomain: D1", "Answer: A\nDomain: D1", 1)
+        with self.assertRaises(StoreError) as cm:
+            self.store.import_exam("x.md", changed)
+        self.assertEqual(cm.exception.extra, {"duplicate": "different"})
+
     def test_bad_ids_never_touch_disk(self):
         for bad in ("../etc", "a-b", "x-y-0", ""):
             with self.assertRaises(StoreError):

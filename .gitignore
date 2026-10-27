@@ -2,6 +2,7 @@
 exams/
 data/
 parse-inbox/
+repairs/
 
 # python
 __pycache__/
