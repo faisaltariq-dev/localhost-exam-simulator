@@ -1,5 +1,5 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
-import { h, clear, groupLabel, tallySvg, fmtDate, fmtClock } from './util.js';
+import { h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
 const SELECTED_KEY = 'examsim.selected';
@@ -17,21 +17,18 @@ export async function render(root, ctx) {
     ctx, exams: [], query: '', view: stored(VIEW_KEY, 'tableau'), selected: stored(SELECTED_KEY, ''),
     detailToken: 0, promptText: '', els: {},
   };
-  window.addEventListener('dragover', blockWindowDrop);
-  window.addEventListener('drop', blockWindowDrop);
+  window.addEventListener('dragover', blockStrayDrops);
+  window.addEventListener('drop', blockStrayDrops);
   clear(root, topbar(), page());
   loadPrompt();
   await reload();
 }
 
 export function cleanup() {
-  window.removeEventListener('dragover', blockWindowDrop);
-  window.removeEventListener('drop', blockWindowDrop);
+  window.removeEventListener('dragover', blockStrayDrops);
+  window.removeEventListener('drop', blockStrayDrops);
   state = null;
 }
-
-// Dropping a file outside the zone must not navigate the tab away to the file.
-function blockWindowDrop(e) { e.preventDefault(); }
 
 async function reload() {
   if (!state) return;
@@ -97,17 +94,11 @@ function dropzone() {
     class: 'dropzone panel', role: 'button', tabindex: '0', 'aria-label': 'Add an exam file',
     onclick: () => input.click(),
     onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } },
-    ondragover: (e) => { e.preventDefault(); zone.classList.add('over'); },
-    ondragleave: () => zone.classList.remove('over'),
-    ondrop: (e) => {
-      e.preventDefault();
-      zone.classList.remove('over');
-      uploadFiles([...e.dataTransfer.files]);
-    },
   },
   h('strong', null, 'Drop an exam file here'),
   h('span', { class: 'muted small' }, 'questions-and-answers-<maker>-<exam>-<n>.md · or click to choose'),
   input);
+  dropTarget(zone, uploadFiles);
   return zone;
 }
 

@@ -130,6 +130,39 @@ export function tallySvg(count, greenIndex = -1) {
   return svg;
 }
 
+// Makes el accept dropped files. Crossing a child element fires dragleave on the parent, so a
+// depth counter keeps the highlight steady instead of flickering on and off.
+export function dropTarget(el, onFiles) {
+  let depth = 0;
+  el.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    depth += 1;
+    el.classList.add('over');
+  });
+  el.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  el.addEventListener('dragleave', () => {
+    depth = Math.max(0, depth - 1);
+    if (!depth) el.classList.remove('over');
+  });
+  el.addEventListener('drop', (e) => {
+    e.preventDefault();
+    depth = 0;
+    el.classList.remove('over');
+    onFiles([...e.dataTransfer.files]);
+  });
+}
+
+// Window-level guard: dropping outside a drop zone must not open the file in the tab,
+// and the cursor should say "no drop" there instead of "copy".
+export function blockStrayDrops(e) {
+  e.preventDefault();
+  const inZone = e.target instanceof Element && e.target.closest('.dropzone');
+  if (e.type === 'dragover' && !inZone) e.dataTransfer.dropEffect = 'none';
+}
+
 // In-page confirm dialog (never window.confirm). Resolves true/false.
 export function confirmDialog({ title, body, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false }) {
   return new Promise((resolve) => {
