@@ -320,7 +320,7 @@ export function open(ctx, { onChange = () => {} } = {}) {
             'Classic looks like a test-centre client; Modern keeps the same layout with a lighter touch.')),
         h('section', { class: 'set-section' },
           h('h3', null, 'Manage exams'),
-          h('details', { class: 'manage-box' },
+          h('details', { class: 'manage-box', open: true },
             h('summary', null, manageCount),
             h('div', { class: 'manage-filter' },
               h('input', {
