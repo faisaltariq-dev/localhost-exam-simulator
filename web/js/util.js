@@ -69,6 +69,71 @@ function inlineCode(parent, line) {
   });
 }
 
+// A small markdown renderer for the prompt view: headings, rules, lists (one nested level),
+// fenced code, paragraphs, `code` and **bold**. Built with DOM nodes, so text is never parsed as HTML.
+export function markdown(text) {
+  const frag = document.createDocumentFragment();
+  const lines = String(text || '').split('\n');
+  let para = null;
+  let list = null;
+  let sub = null;
+  const endBlocks = () => { para = null; list = null; sub = null; };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+    if (/^\s*```/.test(line)) {
+      const code = [];
+      while (++i < lines.length && !/^\s*```/.test(lines[i])) code.push(lines[i]);
+      endBlocks();
+      frag.append(h('pre', null, h('code', null, code.join('\n'))));
+    } else if (!line.trim()) {
+      para = null;
+    } else if ((m = line.match(/^(#{1,6})\s+(.*)$/))) {
+      endBlocks();
+      frag.append(h(`h${Math.min(m[1].length + 2, 6)}`, null, mdInline(m[2])));
+    } else if (/^\s*(-{3,}|\*{3,})\s*$/.test(line)) {
+      endBlocks();
+      frag.append(h('hr'));
+    } else if ((m = line.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/))) {
+      const tag = /\d/.test(m[2]) ? 'ol' : 'ul';
+      const li = h('li', null, mdInline(m[3]));
+      if (m[1].length >= 2 && list && list.lastElementChild) {
+        if (!sub) list.lastElementChild.append(sub = h(tag));
+        sub.append(li);
+      } else {
+        if (!list || list.tagName.toLowerCase() !== tag) frag.append(list = h(tag));
+        sub = null;
+        list.append(li);
+      }
+      para = null;
+    } else if (/^\s{2,}\S/.test(line) && list && list.lastElementChild) {
+      ((sub && sub.lastElementChild) || list.lastElementChild).append(' ', mdInline(line.trim()));
+    } else {
+      list = null;
+      sub = null;
+      if (para) para.append(' ');
+      else frag.append(para = h('p'));
+      para.append(mdInline(line.trim()));
+    }
+  }
+  return frag;
+}
+
+function mdInline(s) {
+  const frag = document.createDocumentFragment();
+  s.split(/(`[^`]+`)/).forEach((part) => {
+    if (/^`[^`]+`$/.test(part)) {
+      frag.append(h('code', null, part.slice(1, -1)));
+      return;
+    }
+    part.split(/(\*\*[^*]+\*\*)/).forEach((p) => {
+      if (/^\*\*[^*]+\*\*$/.test(p)) frag.append(h('strong', null, p.slice(2, -2)));
+      else if (p) frag.append(document.createTextNode(p));
+    });
+  });
+  return frag;
+}
+
 export function plainText(text) {
   return String(text || '').replace(/```[\s\S]*?```/g, ' ').replace(/`/g, '').replace(/\s+/g, ' ').trim();
 }

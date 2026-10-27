@@ -1,7 +1,7 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
 import {
   h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste, confirmDialog,
-  examMatcher, copyButton, selectText, icon, downloadButton,
+  examMatcher, copyButton, selectText, icon, downloadButton, markdown,
 } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
@@ -204,16 +204,36 @@ function showNotice(kind, content) {
 
 function promptBlock() {
   const pre = h('pre', { class: 'prompt-text' }, 'Loading…');
-  const copy = copyButton(() => state.promptText, () => { details.open = true; selectText(pre); });
+  const rendered = h('div', { class: 'prompt-rendered', hidden: true });
+  // Raw by default; Render shows the same file as formatted markdown. Copy and download are always raw.
+  let renderOn = false;
+  const renderSwitch = h('button', {
+    type: 'button', class: 'switch prompt-render', role: 'switch', 'aria-checked': 'false', title: 'Render the markdown',
+    onclick: (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      renderOn = !renderOn;
+      renderSwitch.setAttribute('aria-checked', String(renderOn));
+      if (renderOn) clear(rendered, markdown(state.promptText));
+      rendered.hidden = !renderOn;
+      pre.hidden = renderOn;
+    },
+  }, h('span', { class: 'knob' }), h('span', null, 'Render'));
+  const copy = copyButton(() => state.promptText, () => {
+    details.open = true;
+    if (renderOn) renderSwitch.click();
+    selectText(pre);
+  });
   // Open by default; folding it hides the text, unfolding drops the same height as the other boxes.
   const details = h('details', { class: 'prompt panel', open: true },
     h('summary', { class: 'prompt-head' },
       h('span', { class: 'caret', 'aria-hidden': 'true' }, '▶'),
       h('span', { class: 'mono prompt-name' }, 'prompt-for-exam.md'),
       h('span', { class: 'muted small prompt-desc' }, 'Format spec to give any AI with your exam request'),
+      renderSwitch,
       downloadButton(() => state.promptText, 'prompt-for-exam.md'),
       copy),
-    pre);
+    pre, rendered);
   state.els.promptPre = pre;
   return details;
 }

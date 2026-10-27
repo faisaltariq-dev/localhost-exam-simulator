@@ -360,3 +360,13 @@ table.manage { min-width: 600px; }
 .intake-box .paste-area { height: var(--intake-h); min-height: 0; resize: none; }
 .intake .prompt-text { height: var(--intake-h); max-height: none; }
 .intake .prompt-head { padding-block: 5px; }  /* header + box ends level with the File | Paste row */
+
+/* Rendered prompt view (same box height as the raw text) */
+.intake .prompt-rendered { height: var(--intake-h); overflow: auto; padding: 6px 14px 10px; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+.prompt-rendered h3 { font-size: 16px; margin: 6px 0; }
+.prompt-rendered h4, .prompt-rendered h5, .prompt-rendered h6 { font-size: 14px; margin: 10px 0 4px; }
+.prompt-rendered p { margin: 4px 0; }
+.prompt-rendered ul, .prompt-rendered ol { margin: 4px 0; padding-left: 20px; }
+.prompt-rendered hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
+.prompt-rendered pre { margin: 6px 0; }
+.prompt-render { margin-right: 4px; }
