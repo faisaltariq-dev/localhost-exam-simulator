@@ -155,6 +155,22 @@ export function dropTarget(el, onFiles) {
   });
 }
 
+// A File | Paste switch above two alternative views (only one is shown at a time).
+export function fileOrPaste(fileView, pasteView, label) {
+  const buttons = [['file', 'File'], ['paste', 'Paste']].map(([mode, text]) => h('button', {
+    type: 'button', dataset: { mode }, onclick: () => show(mode),
+  }, text));
+  function show(mode) {
+    fileView.hidden = mode !== 'file';
+    pasteView.hidden = mode !== 'paste';
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  }
+  show('file');
+  return h('div', { class: 'intake-box' },
+    h('div', { class: 'seg mode-toggle', role: 'group', 'aria-label': label }, buttons),
+    fileView, pasteView);
+}
+
 // Window-level guard: dropping outside a drop zone must not open the file in the tab,
 // and the cursor should say "no drop" there instead of "copy".
 export function blockStrayDrops(e) {

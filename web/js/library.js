@@ -1,5 +1,5 @@
 // Library: drop zone, prompt block, search, tableau/list of exams, and the selected exam's history.
-import { h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops } from './util.js';
+import { h, clear, groupLabel, tallySvg, fmtDate, fmtClock, dropTarget, blockStrayDrops, fileOrPaste } from './util.js';
 
 const VIEW_KEY = 'examsim.view';
 const SELECTED_KEY = 'examsim.selected';
@@ -63,7 +63,7 @@ function page() {
   state.els.board = h('section', { class: 'board', 'aria-label': 'Exams' });
   state.els.detail = h('section', { class: 'detail-slot', 'aria-label': 'Selected exam' });
   return h('div', { class: 'page' },
-    h('div', { class: 'intake' }, dropzone(), promptBlock()),
+    h('div', { class: 'intake' }, fileOrPaste(dropzone(), pasteBox(), 'Add an exam by'), promptBlock()),
     state.els.notice, state.els.board, state.els.detail);
 }
 
@@ -102,15 +102,37 @@ function dropzone() {
   return zone;
 }
 
-async function uploadFiles(files) {
-  if (!files.length) return;
+function pasteBox() {
+  const text = h('textarea', {
+    id: 'paste-exam', class: 'paste-area', rows: '5', spellcheck: 'false',
+    placeholder: 'Paste the whole exam here: the --- header, # Domains, # Questions and # Answers',
+  });
+  const go = async () => {
+    if (!text.value.trim()) {
+      showNotice('bad', 'Paste an exam first.');
+      return;
+    }
+    const ok = await importItems([{ name: 'Pasted text', send: () => state.ctx.api.uploadText(text.value) }]);
+    if (ok) text.value = '';
+  };
+  return h('div', { class: 'paste-box' }, text,
+    h('div', { class: 'paste-actions' }, h('button', { class: 'btn primary', type: 'button', onclick: go }, 'Import')));
+}
+
+function uploadFiles(files) {
+  return importItems(files.map((file) => ({ name: file.name, send: () => state.ctx.api.upload(file) })));
+}
+
+// Sends each item to the server and reports every result in one notice. Resolves true if all were added.
+async function importItems(items) {
+  if (!items.length) return false;
   const added = [];
   const failed = [];
-  for (const file of files) {
+  for (const item of items) {
     try {
-      added.push(await state.ctx.api.upload(file));
+      added.push(await item.send());
     } catch (err) {
-      failed.push({ name: file.name, errors: err.errors || [err.message] });
+      failed.push({ name: item.name, errors: err.errors || [err.message] });
     }
   }
   const parts = [];
@@ -121,6 +143,7 @@ async function uploadFiles(files) {
   showNotice(failed.length ? 'bad' : 'ok', parts);
   if (added.length) state.selected = added[added.length - 1].id;
   await reload();
+  return !failed.length;
 }
 
 function showNotice(kind, content) {

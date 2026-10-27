@@ -44,4 +44,5 @@ export const api = {
     const text = await file.text();
     return request('POST', `/api/upload?filename=${enc(file.name)}`, text, true);
   },
+  uploadText: (text) => request('POST', '/api/upload', text, true),
 };

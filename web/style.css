@@ -284,3 +284,10 @@ table.manage { min-width: 600px; }
 .confirm-row td { background: var(--bad-soft); }
 .confirm-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .confirm-box .actions { display: flex; gap: 8px; }
+
+/* File | Paste intake */
+.intake-box { display: grid; gap: 8px; min-width: 0; }
+.mode-toggle { justify-self: start; }
+.paste-box { display: grid; gap: 8px; }
+.paste-area { width: 100%; min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13px; line-height: 1.45; }
+.paste-actions { display: flex; justify-content: flex-end; }
