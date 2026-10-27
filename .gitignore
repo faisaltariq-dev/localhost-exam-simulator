@@ -9,3 +9,6 @@ __pycache__/
 # os / local reference images
 .DS_Store
 *.avif
+
+# local scratch folder: anything inside gitignore/ stays out of git
+gitignore/
