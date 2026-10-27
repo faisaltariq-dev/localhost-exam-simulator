@@ -1,0 +1,820 @@
+<title>Localhost Exam Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: single reading column; the four-lane diagram and working mocks break wider. Final state of the build. */
+:root {
+  --bg: #F2F4F8; --surface: #FFFFFF; --ink: #18202E; --muted: #5A6476; --line: #D4DAE4;
+  --accent: #2747C7; --accent-soft: #E3E8FA; --ok: #1E8448; --bad: #BE342D; --bad-soft: #FBE7E5; --ok-soft: #E2F3E8;
+  --code-bg: #E9EDF4; --lane: #E8ECF3; --scrim: rgba(24, 32, 46, 0.38); --felt: #DDE8E1; --fix: #9A5B00;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E131B; --surface: #161D28; --ink: #E5E9F0; --muted: #97A1B2; --line: #2B3444;
+  --accent: #8FA3FF; --accent-soft: #1D2745; --ok: #4CC27E; --bad: #F0736B; --bad-soft: #3A1E1D; --ok-soft: #173123;
+  --code-bg: #121924; --lane: #131A24; --scrim: rgba(0, 0, 0, 0.55); --felt: #15241C; --fix: #F2B24C; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E131B; --surface: #161D28; --ink: #E5E9F0; --muted: #97A1B2; --line: #2B3444;
+  --accent: #8FA3FF; --accent-soft: #1D2745; --ok: #4CC27E; --bad: #F0736B; --bad-soft: #3A1E1D; --ok-soft: #173123;
+  --code-bg: #121924; --lane: #131A24; --scrim: rgba(0, 0, 0, 0.55); --felt: #15241C; --fix: #F2B24C; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 48px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.col { max-width: 720px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ok); }
+.lede { color: var(--muted); font-size: 1.15rem; margin-top: 12px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+header { display: grid; gap: 10px; margin-bottom: 32px; }
+section { margin-top: 64px; display: grid; gap: 14px; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 0; overflow-x: auto; font: 400 13.5px/1.55 var(--mono); }
+.muted { color: var(--muted); }
+.small { font-size: 0.95rem; }
+.mock-label { font: 600 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+ul.plain, ol.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+/* diagram */
+figure { margin: 0; display: grid; gap: 10px; }
+.diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.diagram svg { display: block; width: 100%; min-width: 880px; height: auto; color: var(--ink); }
+figcaption { color: var(--muted); font-size: 0.95rem; max-width: 760px; }
+svg .lane { fill: var(--lane); } svg .lane-alt { fill: var(--surface); }
+svg .lane-title { font: 700 13px var(--display); fill: currentColor; }
+svg .lane-sub { font: 400 11px var(--mono); fill: var(--muted); }
+svg .node { fill: var(--surface); stroke: currentColor; stroke-width: 1.3; }
+svg .node-drop { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg .node-key { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6; }
+svg .node-fix { fill: var(--surface); stroke: var(--fix); stroke-width: 1.5; }
+svg .t { font: 600 13px var(--body); fill: currentColor; }
+svg .ts { font: 400 11px var(--mono); fill: var(--muted); }
+svg .edge { stroke: currentColor; stroke-width: 1.4; fill: none; }
+svg .edge-bad { stroke: var(--bad); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+svg .edge-fix { stroke: var(--fix); stroke-width: 1.5; fill: none; stroke-dasharray: 2 4; }
+svg .el { font: 400 11px var(--body); fill: var(--muted); }
+svg .el-bad { font: 600 11px var(--body); fill: var(--bad); }
+svg .el-fix { font: 600 11px var(--body); fill: var(--fix); }
+svg .ah { fill: currentColor; } svg .ah-bad { fill: var(--bad); } svg .ah-fix { fill: var(--fix); }
+
+/* tables, pills, buttons */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pill { display: inline-block; font: 600 12px/1 var(--mono); padding: 5px 8px; border-radius: 999px; white-space: nowrap; background: var(--code-bg); color: var(--muted); }
+.pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.bad { background: var(--bad-soft); color: var(--bad); }
+.btn { font: 600 14px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.go { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.icon { display: inline-flex; align-items: center; padding: 6px 9px; }
+.btn.icon svg { display: block; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 7px 12px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; cursor: pointer; background: none; border: 0; padding: 0; }
+.switch .knob { width: 34px; height: 20px; border-radius: 999px; background: var(--line); position: relative; transition: background .15s; }
+.switch .knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); transition: transform .15s; }
+.switch[aria-checked="true"] .knob { background: var(--ok); }
+.switch[aria-checked="true"] .knob::after { transform: translateX(14px); }
+
+/* intake mock */
+.intake { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; align-items: start; --box: 207px; }
+@media (max-width: 760px) { .intake { grid-template-columns: 1fr; } }
+.ibox { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
+.drop { grid-column: 1 / -1; height: var(--box); display: grid; place-content: center; text-align: center; gap: 4px; border: 2px dashed var(--line); border-radius: 10px; background: var(--surface); }
+.paste { grid-column: 1 / -1; height: var(--box); width: 100%; box-sizing: border-box; resize: none; font: 400 13px/1.45 var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.ibox .load { justify-self: end; }
+.promptcol { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.prompt { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.prompt summary { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 5px 12px; cursor: pointer; }
+.prompt summary::-webkit-details-marker { display: none; }
+.caret { font: 600 11px var(--mono); color: var(--muted); transition: transform .15s; display: inline-block; }
+.prompt[open] .caret { transform: rotate(90deg); }
+.pname { font: 600 14px var(--mono); }
+.pdesc { color: var(--muted); font-size: 14px; flex: 1 1 140px; min-width: 0; }
+.prompt pre { border: 0; border-top: 1px solid var(--line); border-radius: 0; height: var(--box); box-sizing: border-box; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.5px; }
+.prompt .rendered { height: var(--box); box-sizing: border-box; overflow: auto; padding: 6px 14px; border-top: 1px solid var(--line); font-size: 14px; }
+.prompt .rendered h4 { margin: 8px 0 4px; font-size: 14px; } .prompt .rendered ul { margin: 2px 0; padding-left: 20px; }
+.tips { color: var(--muted); opacity: .6; font-size: 13.5px; line-height: 1.5; padding: 2px 6px; }
+.tips ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+
+/* tableau */
+.search { flex: 1 1 260px; min-width: 0; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; }
+.search span { font: 600 13px var(--mono); color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 400 15px var(--mono); padding: 10px 0; }
+.search input:focus-visible { outline: none; } .search:focus-within { border-color: var(--accent); }
+.tableau { display: flex; gap: 16px; align-items: flex-start; overflow-x: auto; padding: 16px; background: var(--felt); border: 1px solid var(--line); border-radius: 12px; min-height: 160px; }
+.tcol { flex: 0 0 220px; display: grid; gap: 8px; }
+.thead { display: flex; justify-content: space-between; font: 600 11px var(--mono); letter-spacing: 0.06em; }
+.cascade { display: flex; flex-direction: column; }
+.card { position: relative; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; cursor: pointer; width: 100%; box-sizing: border-box; transition: transform .12s; }
+.cascade .card + .card { margin-top: -8px; box-shadow: 0 -2px 6px rgba(0,0,0,.08); }
+.card.strip { height: 74px; overflow: hidden; align-content: start; }
+.card:hover { transform: translateY(-2px); }
+.card.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); z-index: 1; }
+.ctop { display: flex; align-items: center; height: 22px; color: var(--muted); }
+.ctop svg { height: 20px; width: auto; display: block; }
+.clabel { font: 600 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ctitle { font: 700 15px var(--display); }
+.cmeta { font: 400 12px var(--mono); color: var(--muted); }
+.empty { color: var(--muted); font-size: 0.95rem; }
+
+/* exam + review + results mocks */
+.screen { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.bar .title { font: 700 15px var(--display); flex: 1 1 200px; min-width: 0; }
+.timer { font: 600 15px var(--mono); font-variant-numeric: tabular-nums; padding: 5px 10px; border-radius: 6px; }
+.timer.green { background: var(--ok-soft); color: var(--ok); } .timer.red { background: var(--bad-soft); color: var(--bad); }
+.qbody { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; padding: 20px 16px; }
+@media (max-width: 720px) { .qbody { grid-template-columns: 1fr; } }
+.qnum { font: 600 13px var(--mono); color: var(--muted); }
+.choices { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.choices li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.choices li.sel { border-color: var(--accent); background: var(--accent-soft); }
+.choices li.right { border-color: var(--ok); background: var(--ok-soft); } .choices li.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.choices li .tag { margin-left: auto; font: 600 12px var(--mono); white-space: nowrap; }
+.choices li.right .tag { color: var(--ok); } .choices li.wrong .tag { color: var(--bad); }
+.bubble { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--muted); display: grid; place-items: center; font: 600 12px var(--mono); color: var(--muted); }
+.sel .bubble { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.right .bubble { background: var(--ok); border-color: var(--ok); color: var(--surface); } .wrong .bubble { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.side { display: grid; gap: 10px; align-content: start; }
+.note { width: 100%; box-sizing: border-box; min-height: 96px; resize: vertical; font: 400 14px/1.45 var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.navrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--line); }
+.pausebox { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 16px; display: grid; gap: 6px; }
+.pausebox strong { font-family: var(--display); color: var(--bad); }
+.track { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.stage { position: relative; height: 400px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.ghost { position: absolute; inset: 0; padding: 18px; display: grid; gap: 12px; align-content: start; }
+.ghost i { display: block; height: 12px; border-radius: 4px; background: var(--code-bg); }
+.scrim { position: absolute; inset: 0; background: var(--scrim); cursor: pointer; }
+.rpanel { position: absolute; top: 24px; bottom: 24px; left: 20%; width: 60%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; min-width: 0; }
+@media (max-width: 760px) { .rpanel { left: 3%; width: 94%; } }
+.rhead { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.rhead strong { font-family: var(--display); }
+.chip { font: 600 12px var(--mono); padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.rbody { overflow: auto; flex: 1; } .rbody table { min-width: 520px; } .rbody td, .rbody th { padding: 8px 12px; }
+.rbody tbody tr { cursor: pointer; }
+.first { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notechip { border: 1px dashed var(--muted); background: transparent; border-radius: 6px; padding: 2px 7px; font: 400 13px var(--body); cursor: pointer; white-space: nowrap; }
+.notechip[aria-expanded="true"] { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+.pop { position: absolute; z-index: 5; width: 240px; max-width: calc(100% - 24px); background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.2); font-size: 14px; line-height: 1.45; }
+.pop .mock-label { display: block; margin-bottom: 4px; }
+.reopen { position: absolute; inset: 0; display: grid; place-items: center; }
+.toast { position: absolute; left: 12px; bottom: 10px; right: 12px; font: 400 12px var(--mono); color: var(--muted); text-align: center; pointer-events: none; }
+.resulthead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.score { font: 800 38px/1 var(--display); color: var(--ok); }
+.dbar { display: flex; align-items: center; gap: 10px; }
+.dbar .b { flex: 1; height: 10px; border-radius: 999px; background: var(--code-bg); border: 1px solid var(--line); overflow: hidden; }
+.dbar .f { height: 100%; } .dbar .f.ok { background: var(--ok); } .dbar .f.bad { background: var(--bad); }
+.dbar .p { width: 52px; text-align: right; font: 600 13px var(--mono); } .p.ok { color: var(--ok); } .p.bad { color: var(--bad); }
+
+/* settings mocks */
+.setpanel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 18px; }
+.sethead { font: 600 13px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.setrow { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+.minis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .minis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .minis { grid-template-columns: 1fr; } }
+.mini-wrap { display: grid; gap: 6px; }
+.mini { background: var(--m-bg); color: var(--m-ink); border: 1px solid var(--m-line); border-radius: var(--m-r); overflow: hidden; font: 400 13px/1.4 var(--m-font); transition: box-shadow .15s; }
+.mini.active { box-shadow: 0 0 0 3px var(--accent); }
+.mini .mbar { background: var(--m-bar); padding: 7px 10px; display: flex; justify-content: space-between; font-weight: 700; border-bottom: 1px solid var(--m-line); }
+.mini .mbody { padding: 10px; display: grid; gap: 6px; }
+.mini .opt { border: 1px solid var(--m-line); border-radius: calc(var(--m-r) * .75); padding: 5px 8px; }
+.mini .opt.s { background: var(--m-sel); border-color: var(--m-btn); }
+.mini .mnext { justify-self: end; background: var(--m-btn); color: var(--m-btn-ink); border-radius: calc(var(--m-r) * .75); padding: 4px 12px; font-weight: 700; }
+.m-cl { --m-bg:#FFFFFF; --m-bar:#D9DCDF; --m-ink:#1A1A1A; --m-line:#B6BBC2; --m-btn:#3C5A85; --m-btn-ink:#FFFFFF; --m-sel:#DCE4F0; --m-r:0px; --m-font: Arial, Helvetica, sans-serif; }
+.m-cd { --m-bg:#232528; --m-bar:#2E3033; --m-ink:#E2E2E2; --m-line:#474A50; --m-btn:#7393C4; --m-btn-ink:#0F1115; --m-sel:#2C3646; --m-r:0px; --m-font: Arial, Helvetica, sans-serif; }
+.m-ml { --m-bg:#FFFFFF; --m-bar:#FFFFFF; --m-ink:#18202E; --m-line:#DDE2EA; --m-btn:#2747C7; --m-btn-ink:#FFFFFF; --m-sel:#E3E8FA; --m-r:8px; --m-font: -apple-system, "Segoe UI", system-ui, sans-serif; }
+.m-md { --m-bg:#161D28; --m-bar:#121924; --m-ink:#E5E9F0; --m-line:#2B3444; --m-btn:#8FA3FF; --m-btn-ink:#0E131B; --m-sel:#1D2745; --m-r:8px; --m-font: -apple-system, "Segoe UI", system-ui, sans-serif; }
+.mgroup { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.mgroup summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.mgroup[open] summary { margin-bottom: 6px; }
+.mgroup table { min-width: 460px; }
+.num-in { width: 64px; font: 600 14px var(--mono); padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.confirmbox { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--bad-soft); border-radius: 8px; padding: 10px 12px; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.qitem { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent-soft); }
+.qitem.del { border-color: var(--bad); background: var(--bad-soft); }
+.qitem .prop { font-weight: 700; color: var(--bad); font-size: 0.95rem; }
+.qactions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.logl { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.logl li { padding: 4px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.lp { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 999px; background: var(--code-bg); color: var(--muted); }
+.lp.ok { background: var(--ok-soft); color: var(--ok); } .lp.bad { background: var(--bad-soft); color: var(--bad); }
+.agentline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; }
+.agentline code { flex: 1 1 260px; background: none; padding: 0; overflow-wrap: anywhere; }
+
+/* history + files */
+.phases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .phases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .phases { grid-template-columns: 1fr; } }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 4px; align-content: start; }
+.phase .range { font: 600 12px var(--mono); color: var(--accent); }
+.phase h3 { font-size: 1rem; }
+.commits { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 420px; overflow: auto; }
+.commits li { display: grid; grid-template-columns: 34px 78px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 7px 14px; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+.commits li:last-child { border-bottom: 0; }
+.commits .n { font: 600 12px var(--mono); color: var(--muted); } .commits .h { font: 600 12px var(--mono); color: var(--accent); }
+@media (max-width: 560px) { .commits li { grid-template-columns: 28px minmax(0, 1fr); } .commits .h { display: none; } }
+details.all summary { cursor: pointer; font-weight: 600; }
+.check { display: grid; gap: 6px; padding: 0; margin: 0; } .check li { list-style: none; }
+.files { display: grid; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.files div { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 12px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+.files div:last-child { border-bottom: 0; }
+@media (max-width: 560px) { .files div { grid-template-columns: 1fr; gap: 2px; } }
+.files code { background: none; padding: 0; overflow-wrap: anywhere; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Built · final state · 27 Oct 2026</span>
+    <h1>Localhost Exam Simulator</h1>
+    <p class="lede col">Practise certification exams on your own machine, in conditions close to the real exam. Any AI writes the exam to a fixed format, you load it with a drop or a paste, and the score comes back broken down by domain. If an AI's output won't load, a cheap agent repairs it and you approve the fix with one click.</p>
+    <div class="facts">
+      <span class="pill">58 commits, one concern each</span>
+      <span class="pill">48 unit tests passing</span>
+      <span class="pill">0 dependencies</span>
+      <span class="pill">Python 3.9+ stdlib · vanilla JS</span>
+    </div>
+  </header>
+
+  <section class="col">
+    <h2>Run it</h2>
+    <p>To run the web app, pipe the contents of <code>run.txt</code> into your shell:</p>
+    <pre>cd localhost-exam-simulator &amp;&amp; cat run.txt | sh      # then open http://localhost:8000</pre>
+    <p class="muted small">Stop it with Ctrl+C. Tests: <code>python3 -m unittest discover tests</code>. To check a file without loading it: <code>python3 converter.py file.md</code>.</p>
+  </section>
+
+  <section>
+    <h2>The four layers</h2>
+    <figure>
+      <div class="diagram">
+        <svg viewBox="0 -24 1100 424" role="img" aria-label="Swimlane flow across four layers. Any AI writes the exam; you drop or paste it into the library box and press Load; the Python server checks and converts it into exams on disk, or rejects it with every reason, in which case you can send it to Repairs, which saves a numbered request and appends to an append-only log. A coding agent reads .FIXPARSE.MD, writes a fixed copy and one log line. In Settings you choose Load, Delete or Reject for each queued item. The library lists exams, and taking an exam saves the attempt on submit.">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker>
+            <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-bad" d="M0 0 L10 5 L0 10 z"/></marker>
+            <marker id="ahf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-fix" d="M0 0 L10 5 L0 10 z"/></marker>
+          </defs>
+          <rect class="lane" x="0" y="-24" width="1100" height="119"/>
+          <rect class="lane-alt" x="0" y="95" width="1100" height="100"/>
+          <rect class="lane" x="0" y="195" width="1100" height="105"/>
+          <rect class="lane-alt" x="0" y="300" width="1100" height="100"/>
+          <text class="lane-title" x="14" y="44">Any AI</text><text class="lane-sub" x="14" y="60">outside</text>
+          <text class="lane-title" x="14" y="142">Browser</text><text class="lane-sub" x="14" y="158">localhost:8000</text>
+          <text class="lane-title" x="14" y="244">Python</text><text class="lane-sub" x="14" y="260">server.py</text>
+          <text class="lane-title" x="14" y="346">Disk</text><text class="lane-sub" x="14" y="362">project folder</text>
+
+          <rect class="node" x="115" y="24" width="140" height="48" rx="6"/>
+          <text class="t" x="185" y="45" text-anchor="middle">You + any AI</text>
+          <text class="ts" x="185" y="61" text-anchor="middle">request + prompt</text>
+          <path class="node" d="M300 24 H535 L550 39 V72 H300 Z"/>
+          <text class="t" x="425" y="45" text-anchor="middle">Exam .md</text>
+          <text class="ts" x="425" y="61" text-anchor="middle">header · Domains · Q · A</text>
+          <line class="edge" x1="255" y1="48" x2="298" y2="48" marker-end="url(#ah)"/>
+          <text class="el" x="277" y="40" text-anchor="middle">writes</text>
+          <rect class="node-fix" x="640" y="24" width="160" height="48" rx="6"/>
+          <text class="t" x="720" y="45" text-anchor="middle">Coding agent</text>
+          <text class="ts" x="720" y="61" text-anchor="middle">reads .FIXPARSE.MD</text>
+
+          <rect class="node-key" x="115" y="121" width="140" height="48" rx="6"/>
+          <text class="t" x="185" y="142" text-anchor="middle">Settings · Repairs</text>
+          <text class="ts" x="185" y="158" text-anchor="middle">Load · Delete · Reject</text>
+          <rect class="node-drop" x="350" y="121" width="150" height="48" rx="6"/>
+          <text class="t" x="425" y="142" text-anchor="middle">Library box</text>
+          <text class="ts" x="425" y="158" text-anchor="middle">File | Paste → Load</text>
+          <rect class="node" x="770" y="121" width="150" height="48" rx="6"/>
+          <text class="t" x="845" y="142" text-anchor="middle">Library</text>
+          <text class="ts" x="845" y="158" text-anchor="middle">tableau · tallies</text>
+          <rect class="node-key" x="950" y="121" width="140" height="48" rx="6"/>
+          <text class="t" x="1020" y="142" text-anchor="middle">Exam → Results</text>
+          <text class="ts" x="1020" y="158" text-anchor="middle">by domain</text>
+          <line class="edge" x1="425" y1="72" x2="425" y2="119" marker-end="url(#ah)"/>
+          <text class="el" x="433" y="100">drop or paste</text>
+          <line class="edge" x1="920" y1="145" x2="948" y2="145" marker-end="url(#ah)"/>
+          <text class="el" x="934" y="137" text-anchor="middle">start</text>
+
+          <rect class="node-fix" x="115" y="224" width="140" height="48" rx="6"/>
+          <text class="t" x="185" y="245" text-anchor="middle">Repairs</text>
+          <text class="ts" x="185" y="261" text-anchor="middle">store.py</text>
+          <rect class="node" x="350" y="224" width="150" height="48" rx="6"/>
+          <text class="t" x="425" y="245" text-anchor="middle">Load</text>
+          <text class="ts" x="425" y="261" text-anchor="middle">POST /api/upload</text>
+          <rect class="node-key" x="550" y="224" width="170" height="48" rx="6"/>
+          <text class="t" x="635" y="245" text-anchor="middle">Check &amp; convert</text>
+          <text class="ts" x="635" y="261" text-anchor="middle">header = identity</text>
+          <rect class="node" x="770" y="224" width="150" height="48" rx="6"/>
+          <text class="t" x="845" y="245" text-anchor="middle">Exam list</text>
+          <text class="ts" x="845" y="261" text-anchor="middle">GET /api/exams</text>
+          <rect class="node" x="950" y="224" width="140" height="48" rx="6"/>
+          <text class="t" x="1020" y="245" text-anchor="middle">Scoring</text>
+          <text class="ts" x="1020" y="261" text-anchor="middle">store.py</text>
+          <line class="edge" x1="425" y1="169" x2="425" y2="222" marker-end="url(#ah)"/>
+          <text class="el" x="433" y="200">press Load</text>
+          <line class="edge" x1="500" y1="248" x2="548" y2="248" marker-end="url(#ah)"/>
+          <line class="edge" x1="845" y1="224" x2="845" y2="171" marker-end="url(#ah)"/>
+          <text class="el" x="853" y="200">list</text>
+          <line class="edge" x1="1020" y1="171" x2="1020" y2="222" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <text class="el" x="1012" y="200" text-anchor="end">save on submit · load</text>
+          <line class="edge" x1="185" y1="171" x2="185" y2="222" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <text class="el" x="193" y="200">your decision</text>
+
+          <path class="edge-bad" d="M635 224 V150 H503" marker-end="url(#ahb)"/>
+          <text class="el-bad" x="512" y="141">rejected, every reason listed</text>
+          <path class="edge-bad" d="M350 160 H300 V248 H257" marker-end="url(#ahb)"/>
+          <text class="el-bad" x="262" y="214">send to</text><text class="el-bad" x="262" y="226">Repairs?</text>
+
+          <rect class="node-fix" x="220" y="326" width="200" height="48" rx="6"/>
+          <text class="t" x="320" y="347" text-anchor="middle">repairs/</text>
+          <text class="ts" x="320" y="363" text-anchor="middle">001/ 002/ … + log.md</text>
+          <rect class="node" x="470" y="326" width="170" height="48" rx="6"/>
+          <text class="t" x="555" y="347" text-anchor="middle">exams/</text>
+          <text class="ts" x="555" y="363" text-anchor="middle">raw .md + .json</text>
+          <rect class="node" x="900" y="326" width="190" height="48" rx="6"/>
+          <text class="t" x="995" y="347" text-anchor="middle">data/</text>
+          <text class="ts" x="995" y="363" text-anchor="middle">attempts · settings.json</text>
+          <line class="edge" x1="620" y1="272" x2="620" y2="324" marker-end="url(#ah)"/>
+          <text class="el" x="628" y="302">valid: saved</text>
+          <path class="edge" d="M640 340 H820 V274" marker-end="url(#ah)"/>
+          <text class="el" x="700" y="334">reads</text>
+          <line class="edge" x1="1020" y1="274" x2="1020" y2="324" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <path class="edge-fix" d="M255 260 H290 V324" marker-end="url(#ahf)"/>
+          <path class="edge-fix" d="M720 24 V-8 H104 V350 H218" marker-end="url(#ahf)"/>
+          <text class="el-fix" x="412" y="-13" text-anchor="middle">fixes: writes fixed.md + one log line</text>
+        </svg>
+      </div>
+      <figcaption>Only the Python layer touches the disk, and the agent never writes into your library. A load either succeeds completely or is rejected with every reason listed. A rejected exam can be sent to Repairs, which saves a numbered request and appends to an append-only log. The agent (dotted orange path) fixes formatting and logs what it did. You decide each item in Settings → Repairs: <b>Load</b> runs the same check as a normal load.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2 class="col">Loading an exam</h2>
+    <p class="col">The library's intake is two equal 207 px boxes. On the left you drop a file or paste text, then press <b>Load</b>. On the right is the format prompt for the exam-writing AI, with <b>Render</b>, <b>Download</b> and <b>Copy</b>. Fold the prompt away and six faint exam tips appear in its place.</p>
+    <span class="mock-label">Working mock · try File | Paste, Render, and folding the prompt</span>
+    <div class="intake">
+      <div class="ibox">
+        <div class="drop" id="m-drop"><strong>Drop an exam file here</strong><span class="muted small">or click to choose · then press Load</span></div>
+        <textarea class="paste" id="m-paste" hidden placeholder="Paste the whole exam here: the --- header, # Domains, # Questions and # Answers"></textarea>
+        <div class="seg" role="group" aria-label="Load an exam by"><button type="button" id="m-file" aria-pressed="true">File</button><button type="button" id="m-pastebtn" aria-pressed="false">Paste</button></div>
+        <button type="button" class="btn primary load" id="m-load">Load</button>
+      </div>
+      <div class="promptcol">
+        <details class="prompt" id="m-prompt" open>
+          <summary>
+            <span class="caret" aria-hidden="true">▶</span>
+            <span class="pname">prompt-exam-parsable-output.md</span>
+            <span class="pdesc">Format spec to give any AI</span>
+            <button type="button" class="switch" role="switch" aria-checked="false" id="m-render"><span class="knob"></span><span>Render</span></button>
+            <button type="button" class="btn icon" title="Download" aria-label="Download"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
+            <button type="button" class="btn icon" title="Copy" aria-label="Copy" id="m-copy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/></svg></button>
+          </summary>
+          <pre id="m-raw"># prompt-exam-parsable-output.md
+
+This file defines the exact output format for a practice exam that will be loaded into my local exam simulator. Follow my message for the content, topics and difficulty, and follow this file only for the structure.
+
+## Output
+- Produce ONE markdown file named:
+  questions-and-answers-&lt;maker&gt;-&lt;exam&gt;-&lt;number&gt;.md
+- Start with the filename on its own line, then the whole file inside a single code block.
+- One header, one `# Domains`, one `# Questions`, one `# Answers` section.
+
+## Structure (in this order)
+1. A header between two `---` lines: exam_maker, exam_name, exam_number, title, duration_minutes, domain_count
+2. `# Domains`: one line per domain, `- D1: &lt;name&gt;` …
+3. `# Questions`: `## Q&lt;n&gt;`, the text, exactly four choices `- A)` … `- D)`
+4. `# Answers`: `## Q&lt;n&gt;`, `Answer:`, `Domain:`, `Explanation:`
+…</pre>
+          <div class="rendered" id="m-rendered" hidden>
+            <h4>prompt-exam-parsable-output.md</h4>
+            <p>This file defines the exact output format for a practice exam that will be loaded into my local exam simulator.</p>
+            <h4>Output</h4>
+            <ul><li>Produce ONE markdown file named <code>questions-and-answers-&lt;maker&gt;-&lt;exam&gt;-&lt;number&gt;.md</code></li><li>One header, one <code># Domains</code>, one <code># Questions</code>, one <code># Answers</code> section.</li></ul>
+            <h4>Structure (in this order)</h4>
+            <ul><li>A header between two <code>---</code> lines</li><li><code># Domains</code>: <code>- D1: &lt;name&gt;</code> …</li></ul>
+          </div>
+        </details>
+        <div class="tips" id="m-tips" hidden>
+          <ol>
+            <li><b>Read the last sentence first.</b> Know what's being asked before reading the scenario.</li>
+            <li><b>Scan the options early.</b> Identify the concepts you need to focus on.</li>
+            <li><b>Eliminate wrong answers.</b> Narrow down your choices before deciding.</li>
+            <li><b>Spot keywords.</b> BEST, FIRST, NOT, and LEAST can change everything.</li>
+            <li><b>True ≠ Correct.</b> Choose what answers the question, not just what's technically true.</li>
+            <li><b>Stuck between two?</b> Compare their differences against the scenario's requirements.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+    <div class="two">
+      <div class="col small">
+        <h3>The header is the identity</h3>
+        <p class="muted">The exam's ID is <code>exam_maker-exam_name-exam_number</code> from its header, ignoring case and hyphens, so <code>AI-Engineer</code> and <code>aiengineer</code> are the same name. The filename is ignored, and pasted text needs none. The same maker and name put exams in the same tableau column. An identical copy just says <i>"Already in your library"</i>.</p>
+      </div>
+      <div class="col small">
+        <h3>Strict on purpose</h3>
+        <p class="muted">The parser reports every problem at once instead of guessing. It does tolerate common AI habits: a filename line and a code fence around a pasted reply, Windows line endings, <b>bold</b> labels, and <code>A.</code> or <code>(A)</code> choice styles. Anything else is rejected and offered to Repairs.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Library: the tableau</h2>
+    <p class="col">Exams that share a maker and name form a column, like a solitaire tableau, with cards cascading by number. Many columns scroll sideways inside the felt. <b>List</b> shows every exam as its own card. Search works the way grep does: plain text, or <code>/regex/</code>.</p>
+    <span class="mock-label">Working mock · example exams · search, then click a strip</span>
+    <div style="display:flex"><div class="search"><span>/</span><input id="q" type="search" placeholder="Search exams: adp, practice 2, /gcp-.*-1/" autocomplete="off" aria-label="Search exams"></div></div>
+    <div class="tableau" id="tableau"></div>
+    <p class="col muted small"><b>Tally marks:</b> one stroke per attempt, grouped in fives. One stroke turns green only if that attempt is the highest score on the exam, at or above <i>that exam's</i> pass mark, and was neither paused nor overtime.</p>
+  </section>
+
+  <section>
+    <h2>Taking the exam</h2>
+    <div class="screen">
+      <div class="bar">
+        <span class="title">GCP Associate Data Practitioner – Practice 1</span>
+        <span class="timer green">1:42:17</span>
+        <button class="btn" type="button" id="x-pause">Pause</button>
+        <button class="btn" type="button" id="x-review">Review</button>
+        <button class="btn primary" type="button" id="x-submit">Submit</button>
+      </div>
+      <div class="qbody">
+        <div style="min-width:0">
+          <div class="qnum">Question 12 of 50</div>
+          <p style="margin-top:6px">A team loads daily CSV exports into BigQuery, and analysts complain that dashboards show yesterday's data until 10:00. Which change gets fresh data in fastest with the least operational overhead?</p>
+          <ul class="choices">
+            <li><span class="bubble">A</span><span>Schedule a BigQuery Data Transfer Service run for 06:00.</span></li>
+            <li><span class="bubble">B</span><span>Build a Dataflow streaming pipeline that reads from Cloud Storage.</span></li>
+            <li class="sel"><span class="bubble">C</span><span>Trigger a load job from the Cloud Storage upload event.</span></li>
+            <li><span class="bubble">D</span><span>Load the CSVs into Bigtable and query them from there.</span></li>
+          </ul>
+        </div>
+        <div class="side">
+          <button class="btn" type="button" id="x-bm" style="justify-self:start;color:var(--accent);border-color:var(--accent)">★ Bookmarked</button>
+          <label class="mock-label" for="x-note">Note</label>
+          <textarea class="note" id="x-note">Torn between A and C. Does "fastest" mean event-driven?</textarea>
+        </div>
+      </div>
+      <div class="navrow"><button class="btn" type="button" id="x-prev">← Previous</button><span class="muted small">31 of 50 answered</span><button class="btn primary" type="button" id="x-next">Next →</button></div>
+    </div>
+    <div class="two">
+      <div style="display:grid;gap:10px">
+        <div class="track"><span class="timer green">2:00:00</span><span class="muted mono">→</span><span class="timer green">0:00:01</span><span class="muted mono">→</span><span class="timer red">−0:03:41</span></div>
+        <p class="muted small">The timer counts down in green, then turns red and counts overtime. It never submits for you. On the keyboard, ←/→ move between questions and A–D or 1–4 answer. Leaving mid-exam asks first, because an unsubmitted attempt is discarded.</p>
+      </div>
+      <div class="pausebox"><strong>⚠ Warning: real exams do not have a pause mechanism.</strong><span class="muted small">The question is hidden and the clock stops. Results only say <span class="pill">Taken continuously</span> or <span class="pill">Paused during exam</span>.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Review panel with notes</h2>
+    <span class="mock-label">Working mock · click a note, then click elsewhere, then click the dark area</span>
+    <div class="stage" id="stage">
+      <div class="ghost" aria-hidden="true"><i style="width:40%"></i><i style="width:90%"></i><i style="width:80%"></i><i style="width:60%"></i><i style="width:85%"></i></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="rpanel" id="rpanel" role="dialog" aria-label="Review list">
+        <div class="rhead"><strong>Review · 50 questions</strong><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip on">All</span><span class="chip">★ Bookmarked</span><span class="chip">Unanswered</span><span class="chip">With notes</span></div></div>
+        <div class="rbody"><table><thead><tr><th>#</th><th>Question</th><th>★</th><th>Note</th><th>Status</th></tr></thead><tbody id="rrows"></tbody></table></div>
+        <div class="pop" id="pop" hidden><span class="mock-label" id="pop-h">Note · Q12</span><span id="pop-t"></span></div>
+      </div>
+      <div class="reopen" id="reopen" hidden><button class="btn primary" type="button" id="reopen-btn">Review</button></div>
+      <div class="toast" id="toast"></div>
+    </div>
+    <p class="col muted small">Clicks close one layer at a time. With a note open, the first click elsewhere only closes the note. With no note open, a click outside the panel closes it. <kbd>Esc</kbd> closes whatever is on top.</p>
+  </section>
+
+  <section>
+    <h2>Results by domain</h2>
+    <div class="resulthead">
+      <span class="score">78%</span>
+      <span class="mono small muted">39 / 50 correct · pass mark 70%</span>
+      <span class="mono small">Completed in 1:41:30 <span class="muted">of 120 min</span></span>
+      <span class="pill">Taken continuously</span><span class="pill ok">Green attempt</span>
+      <span style="flex:1"></span>
+      <button type="button" class="switch" role="switch" aria-checked="true" id="revised"><span class="knob"></span><span>Revised</span></button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Domain</th><th>Correct</th><th style="width:45%">Score</th></tr></thead>
+        <tbody>
+          <tr><td><span class="mono muted">D1</span> Data Preparation and Ingestion</td><td class="num">16 / 19</td><td><div class="dbar"><div class="b"><div class="f ok" style="width:84.2%"></div></div><span class="p ok">84.2%</span></div></td></tr>
+          <tr><td><span class="mono muted">D2</span> Data Analysis and Presentation</td><td class="num">15 / 18</td><td><div class="dbar"><div class="b"><div class="f ok" style="width:83.3%"></div></div><span class="p ok">83.3%</span></div></td></tr>
+          <tr><td><span class="mono muted">D3</span> Data Management</td><td class="num">8 / 13</td><td><div class="dbar"><div class="b"><div class="f bad" style="width:61.5%"></div></div><span class="p bad">61.5%</span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Settings</h2>
+    <p class="col">Three sections, top to bottom: <b>General</b>, <b>Manage exams</b> (expanded), and <b>Repairs</b> (log expanded, last entry per item). It opens from the drawn gear in the library.</p>
+    <span class="mock-label">Working mock · flip the looks, filter the exams, decide the queue</span>
+    <div class="setpanel">
+      <div style="display:grid;gap:10px">
+        <span class="sethead">General</span>
+        <div class="setrow">
+          <span class="seg" role="group" aria-label="Theme"><button type="button" id="s-light" aria-pressed="true">Light</button><button type="button" id="s-dark" aria-pressed="false">Dark</button></span>
+          <span class="seg" role="group" aria-label="Style"><button type="button" id="s-classic" aria-pressed="true">Classic</button><button type="button" id="s-modern" aria-pressed="false">Modern</button></span>
+        </div>
+        <div class="minis">
+          <div class="mini-wrap"><span class="mock-label">Classic · light</span><div class="mini m-cl" id="mini-cl"><div class="mbar"><span>Question 12 of 50</span><span>1:42:17</span></div><div class="mbody"><div class="opt">A. Schedule a transfer run</div><div class="opt s">C. Trigger a load job</div><div class="mnext">Next</div></div></div></div>
+          <div class="mini-wrap"><span class="mock-label">Classic · dark</span><div class="mini m-cd" id="mini-cd"><div class="mbar"><span>Question 12 of 50</span><span>1:42:17</span></div><div class="mbody"><div class="opt">A. Schedule a transfer run</div><div class="opt s">C. Trigger a load job</div><div class="mnext">Next</div></div></div></div>
+          <div class="mini-wrap"><span class="mock-label">Modern · light</span><div class="mini m-ml" id="mini-ml"><div class="mbar"><span>Question 12 of 50</span><span>1:42:17</span></div><div class="mbody"><div class="opt">A. Schedule a transfer run</div><div class="opt s">C. Trigger a load job</div><div class="mnext">Next</div></div></div></div>
+          <div class="mini-wrap"><span class="mock-label">Modern · dark</span><div class="mini m-md" id="mini-md"><div class="mbar"><span>Question 12 of 50</span><span>1:42:17</span></div><div class="mbody"><div class="opt">A. Schedule a transfer run</div><div class="opt s">C. Trigger a load job</div><div class="mnext">Next</div></div></div></div>
+        </div>
+      </div>
+      <div style="display:grid;gap:10px">
+        <span class="sethead">Manage exams</span>
+        <div style="display:flex"><div class="search"><span>/</span><input id="mq" type="search" placeholder="Find an exam to edit: demo, net, /-2$/" autocomplete="off" aria-label="Filter exams"></div></div>
+        <div id="mgroups" style="display:grid;gap:6px"></div>
+        <p class="muted small">Time and pass % are per exam. Setting one back to the default removes the override. Each attempt keeps the limits it was taken with.</p>
+      </div>
+      <div style="display:grid;gap:10px">
+        <span class="sethead">Repairs</span>
+        <strong id="rcounts">Inbox 1 · Queue 2</strong>
+        <div id="rqueue" style="display:grid;gap:8px"></div>
+        <ul class="logl" id="rlog"></ul>
+        <div class="agentline"><code>Read .FIXPARSE.MD in this folder and work through the Repairs inbox.</code><button type="button" class="btn icon" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="col">
+    <h2>Repairs, end to end</h2>
+    <ol class="plain">
+      <li><b>A load fails.</b> You see every reason, plus <i>"Send this to Repairs?"</i> with an optional "why". Yes saves it as <code>repairs/003/</code> (the exam as sent, plus the reasons) and appends a <code>sent</code> line to <code>repairs/log.md</code>.</li>
+      <li><b>You start any agent</b> with the copied line. It inspects each waiting item. An easy fix gets written to <code>fixed.md</code> with a <code>queued</code> line. Something not worth fixing gets a <code>queued-delete</code> line. Anything odd gets a question, or a <code>declined</code> line. Right before writing, it re-reads the log, and if a line crossed with yours (about 1 in 1,000), it adds a <code>Conflict:</code> note and carries on.</li>
+      <li><b>You decide in Settings.</b> <b>Load</b> runs the same check as a normal load. <b>Delete</b> moves the folder to <code>repairs/trash/</code>. <b>Reject</b> takes an optional reason, keeps the attempt as <code>fixed-rejected-N.md</code> and sends the item back. You can add a note to any inbox item, and the agent treats your notes as instructions.</li>
+      <li><b>Nothing is truly deleted by the app,</b> and the agent never touches code, your library or your results. The state is just the log: one append-only line per event, cheap enough for a small model.</li>
+    </ol>
+    <pre>2026-10-27 21:40 · #003 · agent · queued · Q4 heading was "## Q 4)"; changed to "## Q4". Nothing else changed.
+2026-10-27 21:42 · #005 · agent · queued-delete · The owner asked to delete it; it's an exact duplicate.
+2026-10-27 21:45 · #003 · owner · approved · loaded as sample-demo-1</pre>
+  </section>
+
+  <section>
+    <h2 class="col">How it was built</h2>
+    <p class="col muted small">58 commits, one concern each, with tests green at every step. History was rewritten once, before publishing, to replace a non-generic sample. Every commit was re-tested after that rewrite.</p>
+    <div class="phases">
+      <div class="phase"><span class="range">1–13</span><h3>The build</h3><p class="muted small">Plan, prompt, converter, tests, storage, API, then the web app module by module, then the README.</p></div>
+      <div class="phase"><span class="range">14–26</span><h3>Real-world inputs</h3><p class="muted small">Hyphenated names, the header as identity, paste mode, <code>run.txt</code>, and the first agent fix flow.</p></div>
+      <div class="phase"><span class="range">27–37</span><h3>Repairs</h3><p class="muted small">Single-file Load, the append-only log, the approve queue, delete proposals, and the conflict rule.</p></div>
+      <div class="phase"><span class="range">38–57</span><h3>Polish</h3><p class="muted small">Settings layout, per-exam pass mark, drawn icons, equal intake boxes, prompt tools, exam tips, and the rename.</p></div>
+    </div>
+    <details class="all">
+      <summary>All 58 commits, oldest first</summary>
+      <ol class="commits" id="commits"></ol>
+    </details>
+  </section>
+
+  <section>
+    <h2 class="col">What was checked</h2>
+    <div class="two">
+      <div><h3 style="margin-bottom:8px">Verified</h3>
+        <ul class="check small">
+          <li>✅ 48 unit tests: parsing, every broken sample, the green rule's edge cases, scoring, domain scores, per-exam pass marks, storage, and Repairs (send, queue, Load, Delete, Reject, notes, never-reused numbers)</li>
+          <li>✅ The API end to end, path traversal blocked</li>
+          <li>✅ Every screen exercised in a browser and read through the DOM, always on a throwaway copy of the project</li>
+          <li>✅ Layout measured, not eyeballed: equal 207 px boxes, level columns, aligned bottom row</li>
+          <li>✅ A real agent repaired a deliberately broken exam, and a 4th AI provider's file loaded first time</li>
+        </ul>
+      </div>
+      <div><h3 style="margin-bottom:8px">Worth a look</h3>
+        <ul class="check small">
+          <li>👀 The tab icon is drawn from a screenshot by eye, so check it at tab size</li>
+          <li>👀 Clipboard copy is verified only through its fallback path (a background tab can't use the clipboard)</li>
+          <li>👀 The browser's own "Leave site?" prompt when closing mid-exam</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="col">
+    <h2>Files</h2>
+    <div class="files">
+      <div><code>run.txt</code><span class="muted small">The one command that starts the app</span></div>
+      <div><code>prompt-exam-parsable-output.md</code><span class="muted small">The format spec you give to the exam-writing AI</span></div>
+      <div><code>.FIXPARSE.MD</code><span class="muted small">Instructions for any coding agent working through Repairs</span></div>
+      <div><code>converter.py</code> · <code>store.py</code> · <code>server.py</code><span class="muted small">Parsing, storage and rules, and the local API (127.0.0.1 only)</span></div>
+      <div><code>web/</code><span class="muted small">The single-page app, with modules for library, exam, results and settings</span></div>
+      <div><code>samples/</code> · <code>tests/</code><span class="muted small">Generic example exams (good and broken) and the unit tests</span></div>
+      <div><code>reproduciable-plan-…md</code><span class="muted small">The original design, frozen, to hand to other builders</span></div>
+      <div><code>exams/</code> · <code>data/</code> · <code>repairs/</code><span class="muted small">Your exams, attempts, settings and repair requests (not tracked by git)</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---- intake mock ----
+  function mode(m) {
+    $('m-file').setAttribute('aria-pressed', m === 'file'); $('m-pastebtn').setAttribute('aria-pressed', m === 'paste');
+    $('m-drop').hidden = m !== 'file'; $('m-paste').hidden = m !== 'paste';
+  }
+  $('m-file').addEventListener('click', function () { mode('file'); });
+  $('m-pastebtn').addEventListener('click', function () { mode('paste'); });
+  var prompt = $('m-prompt');
+  $('m-render').addEventListener('click', function (e) {
+    e.preventDefault(); e.stopPropagation();
+    var on = this.getAttribute('aria-checked') !== 'true';
+    this.setAttribute('aria-checked', on); $('m-rendered').hidden = !on; $('m-raw').hidden = on;
+  });
+  prompt.querySelectorAll('.btn.icon').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); }); });
+  prompt.addEventListener('toggle', function () { $('m-tips').hidden = prompt.open; });
+
+  // ---- tableau ----
+  function tallySVG(n, green) {
+    if (!n) return '';
+    var parts = [];
+    for (var i = 0; i < n; i++) {
+      var pos = i % 5, gx = Math.floor(i / 5) * 34 + 2, col = i === green ? 'var(--ok)' : 'currentColor', w = i === green ? 3 : 2;
+      if (pos < 4) parts.push('<line x1="' + (gx + pos * 7) + '" y1="2" x2="' + (gx + pos * 7) + '" y2="18" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+      else parts.push('<line x1="' + (gx - 3) + '" y1="15" x2="' + (gx + 24) + '" y2="5" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+    }
+    var width = Math.ceil(n / 5) * 34;
+    return '<svg viewBox="0 0 ' + width + ' 20" width="' + width + '" height="20" role="img" aria-label="' + n + ' attempts">' + parts.join('') + '</svg>';
+  }
+  var exams = [
+    { id: 'gcp-adp-1', group: 'GCP · ADP', title: 'Practice 1', q: 50, min: 120, pass: 70, n: 5, green: 3 },
+    { id: 'gcp-adp-2', group: 'GCP · ADP', title: 'Practice 2', q: 50, min: 120, pass: 70, n: 2, green: -1 },
+    { id: 'gcp-adp-3', group: 'GCP · ADP', title: 'Practice 3 · extra hard', q: 50, min: 90, pass: 80, n: 0, green: -1 },
+    { id: 'aws-saa-1', group: 'AWS · SAA', title: 'Practice 1', q: 65, min: 130, pass: 72, n: 7, green: 5 },
+    { id: 'sample-net-1', group: 'SAMPLE · NET', title: 'Cloud Networking Basics', q: 6, min: 8, pass: 70, n: 1, green: 0 }
+  ];
+  var selected = 'gcp-adp-1', tableau = $('tableau'), qIn = $('q');
+  function matcher(q) {
+    q = q.trim(); if (!q) return function () { return true; };
+    var m = q.match(/^\/(.+)\/$/);
+    if (m) { try { var re = new RegExp(m[1], 'i'); return function (e) { return re.test(e.id) || re.test(e.title); }; } catch (err) { return function () { return false; }; } }
+    var s = q.toLowerCase(); return function (e) { return (e.id + ' ' + e.group + ' ' + e.title).toLowerCase().indexOf(s) !== -1; };
+  }
+  function renderTableau() {
+    var hits = exams.filter(matcher(qIn.value));
+    if (!hits.length) { tableau.innerHTML = '<p class="empty">No exams match.</p>'; return; }
+    var groups = {}, order = [];
+    hits.forEach(function (e) { if (!groups[e.group]) { groups[e.group] = []; order.push(e.group); } groups[e.group].push(e); });
+    tableau.innerHTML = order.sort().map(function (g) {
+      var list = groups[g];
+      return '<div class="tcol"><div class="thead"><span>' + g + '</span><span class="muted">' + list.length + '</span></div><div class="cascade">' +
+        list.map(function (e, i) {
+          return '<button type="button" class="card' + (i < list.length - 1 ? ' strip' : '') + (e.id === selected ? ' sel' : '') + '" data-id="' + e.id + '">' +
+            '<div class="ctop">' + tallySVG(e.n, e.green) + '</div><div class="clabel">' + e.group + '</div><div class="ctitle">' + e.title + '</div>' +
+            '<div class="cmeta">' + e.id + ' · ' + e.q + ' q · ' + e.min + ' min</div></button>';
+        }).join('') + '</div></div>';
+    }).join('');
+  }
+  tableau.addEventListener('click', function (ev) { var c = ev.target.closest('.card'); if (c) { selected = c.dataset.id; renderTableau(); } });
+  qIn.addEventListener('input', renderTableau);
+  renderTableau();
+
+  // ---- review panel ----
+  var rows = [
+    [10, 'A marketing analyst wants to join Google Ads data with first-party sales…', true, 'Check that BQ DTS supports Google Ads natively. Pretty sure it does.', true],
+    [11, 'A healthcare startup must de-identify patient records before analysis…', false, '', true],
+    [12, 'A team loads daily CSV exports into BigQuery, and analysts complain…', true, 'Torn between A and C. Does "fastest" mean event-driven?', true],
+    [13, 'You need to share a Looker Studio report with an external partner…', true, 'Re-read: external users without Google accounts? Then it is link sharing, not IAM.', false],
+    [14, 'Which IAM role lets a data analyst run queries but not modify tables…', false, '', false]
+  ];
+  function firstWords(t) { var w = t.split(/\s+/); return w.slice(0, 3).join(' ') + (w.length > 3 ? '…' : ''); }
+  $('rrows').innerHTML = rows.map(function (r) {
+    return '<tr data-q="' + r[0] + '"><td class="num">' + r[0] + '</td><td class="first">' + r[1] + '</td><td style="color:var(--accent)">' + (r[2] ? '★' : '') + '</td><td>' +
+      (r[3] ? '<button type="button" class="notechip" aria-expanded="false" data-q="' + r[0] + '">' + firstWords(r[3]) + '</button>' : '<span class="muted">—</span>') +
+      '</td><td>' + (r[4] ? '<span class="pill">answered</span>' : '<span class="pill bad">unanswered</span>') + '</td></tr>';
+  }).join('');
+  var stage = $('stage'), panel = $('rpanel'), scrim = $('scrim'), pop = $('pop'), toast = $('toast'), reopen = $('reopen'), openChip = null;
+  function say(t) { toast.textContent = t; }
+  function closePop() { if (openChip) openChip.setAttribute('aria-expanded', 'false'); openChip = null; pop.hidden = true; }
+  function openPop(chip) {
+    closePop(); openChip = chip; chip.setAttribute('aria-expanded', 'true');
+    var r = rows.filter(function (x) { return String(x[0]) === chip.dataset.q; })[0];
+    $('pop-h').textContent = 'Note · Q' + r[0]; $('pop-t').textContent = r[3]; pop.hidden = false;
+    var pr = panel.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    var left = Math.min(Math.max(8, cr.left - pr.left), pr.width - pop.offsetWidth - 8), top = cr.bottom - pr.top + 6;
+    if (top + pop.offsetHeight > pr.height - 8) top = cr.top - pr.top - pop.offsetHeight - 6;
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  stage.addEventListener('click', function (ev) {
+    var t = ev.target; if (t.closest('#pop')) return;
+    var chip = t.closest('.notechip');
+    if (chip) { if (chip === openChip) { closePop(); say('Note closed.'); } else { openPop(chip); say('Note open. Click anywhere else to close it.'); } return; }
+    if (openChip) { closePop(); say('First click closed only the note.'); return; }
+    if (t === scrim) { panel.hidden = true; scrim.hidden = true; reopen.hidden = false; say('Clicked outside: review list closed.'); return; }
+    var row = t.closest('tbody tr'); if (row) say('Would jump to question ' + row.dataset.q + '.');
+  });
+  $('reopen-btn').addEventListener('click', function (ev) { ev.stopPropagation(); panel.hidden = false; scrim.hidden = false; reopen.hidden = true; say(''); });
+  $('revised').addEventListener('click', function () { this.setAttribute('aria-checked', this.getAttribute('aria-checked') !== 'true'); });
+
+  // ---- settings: looks ----
+  var st = { theme: 'light', style: 'classic' };
+  function paint() {
+    ['light', 'dark'].forEach(function (k) { $('s-' + k).setAttribute('aria-pressed', st.theme === k); });
+    ['classic', 'modern'].forEach(function (k) { $('s-' + k).setAttribute('aria-pressed', st.style === k); });
+    var key = (st.style === 'classic' ? 'c' : 'm') + (st.theme === 'light' ? 'l' : 'd');
+    ['cl', 'cd', 'ml', 'md'].forEach(function (k) { $('mini-' + k).classList.toggle('active', k === key); });
+  }
+  ['light', 'dark'].forEach(function (k) { $('s-' + k).addEventListener('click', function () { st.theme = k; paint(); }); });
+  ['classic', 'modern'].forEach(function (k) { $('s-' + k).addEventListener('click', function () { st.style = k; paint(); }); });
+  paint();
+
+  // ---- settings: manage exams (grouped, filterable) ----
+  var defaults = { min: {}, pass: {} };
+  exams.forEach(function (e) { defaults.min[e.id] = e.id === 'gcp-adp-3' ? 120 : e.min; defaults.pass[e.id] = 70; });
+  var pendingDel = null, openGroups = {};
+  function renderManage() {
+    var f = $('mq').value.trim(), hits = exams.filter(matcher(f)), groups = {}, order = [];
+    hits.forEach(function (e) { if (!groups[e.group]) { groups[e.group] = []; order.push(e.group); } groups[e.group].push(e); });
+    if (!hits.length) { $('mgroups').innerHTML = '<p class="empty">No exams match.</p>'; return; }
+    $('mgroups').innerHTML = order.sort().map(function (g) {
+      var open = f ? true : !!openGroups[g];
+      return '<details class="mgroup" data-g="' + g + '"' + (open ? ' open' : '') + '><summary>' + g + ' (' + groups[g].length + ')</summary><div style="overflow-x:auto"><table><thead><tr><th>Exam</th><th>Time (min)</th><th>Pass %</th><th></th></tr></thead><tbody>' +
+        groups[g].map(function (e) {
+          var row = '<tr><td><b class="mono">' + e.id + '</b><div class="muted small">' + e.title + '</div></td>' +
+            '<td><input class="num-in" type="number" data-k="min" data-id="' + e.id + '" value="' + e.min + '" aria-label="Time for ' + e.id + '"><div class="muted small">' + (e.min !== defaults.min[e.id] ? 'changed · default ' + defaults.min[e.id] : 'default') + '</div></td>' +
+            '<td><input class="num-in" type="number" data-k="pass" data-id="' + e.id + '" value="' + e.pass + '" aria-label="Pass mark for ' + e.id + '"><div class="muted small">' + (e.pass !== 70 ? 'changed · default 70' : 'default') + '</div></td>' +
+            '<td><button type="button" class="btn" data-del="' + e.id + '">Delete…</button></td></tr>';
+          if (pendingDel === e.id) row += '<tr><td colspan="4"><div class="confirmbox"><span>Delete <b>' + e.id + '</b>, its original .md and ' + e.n + ' attempt' + (e.n === 1 ? '' : 's') + '? This can\'t be undone.</span><span class="btns"><button type="button" class="btn danger" data-really="' + e.id + '">Delete for good</button><button type="button" class="btn" data-cancel="1">Cancel</button></span></div></td></tr>';
+          return row;
+        }).join('') + '</tbody></table></div></details>';
+    }).join('');
+  }
+  $('mgroups').addEventListener('toggle', function (e) { if (!$('mq').value.trim() && e.target.dataset.g) openGroups[e.target.dataset.g] = e.target.open; }, true);
+  $('mgroups').addEventListener('click', function (ev) {
+    var t = ev.target.closest('button'); if (!t) return;
+    if (t.dataset.del) { pendingDel = t.dataset.del; renderManage(); }
+    else if (t.dataset.cancel) { pendingDel = null; renderManage(); }
+    else if (t.dataset.really) { var id = t.dataset.really; exams = exams.filter(function (x) { return x.id !== id; }); pendingDel = null; renderManage(); renderTableau(); }
+  });
+  $('mgroups').addEventListener('change', function (ev) {
+    var t = ev.target; if (!t.dataset.id) return;
+    var e = exams.filter(function (x) { return x.id === t.dataset.id; })[0], v = parseInt(t.value, 10), max = t.dataset.k === 'pass' ? 100 : 600;
+    if (!(v >= 1 && v <= max)) { t.value = e[t.dataset.k]; return; }
+    e[t.dataset.k] = v; renderManage(); renderTableau();
+  });
+  $('mq').addEventListener('input', renderManage);
+  openGroups['GCP · ADP'] = true;
+  renderManage();
+
+  // ---- settings: repairs ----
+  var queue = [
+    { id: 3, kind: 'fix', msg: 'Q4 heading was "## Q 4)"; changed to "## Q4". Nothing else changed.' },
+    { id: 5, kind: 'delete', msg: "The owner asked to delete it; it's an exact duplicate of sample-demo-1." }
+  ];
+  var inbox = [4];
+  var log = [
+    ['21:42', 5, 'agent', 'queued-delete', "The owner asked to delete it; it's an exact duplicate of sample-demo-1."],
+    ['21:41', 4, 'agent', 'declined', 'Same ID as gcp-adp-2 but different questions. Load it as number 3, or delete it?'],
+    ['21:40', 3, 'agent', 'queued', 'Q4 heading was "## Q 4)"; changed to "## Q4". Nothing else changed.']
+  ];
+  var pad = function (n) { return '#' + ('00' + n).slice(-3); };
+  function renderRepairs() {
+    $('rcounts').textContent = 'Inbox ' + inbox.length + ' · Queue ' + queue.length;
+    $('rqueue').innerHTML = queue.map(function (q) {
+      return '<div class="qitem' + (q.kind === 'delete' ? ' del' : '') + '">' + (q.kind === 'delete' ? '<span class="prop">Proposed: delete this request</span>' : '') +
+        '<div><b class="mono">' + pad(q.id) + '</b> ' + q.msg + '</div><div class="qactions"><button type="button" class="btn" data-r="' + q.id + '">Reject</button>' +
+        (q.kind === 'delete' ? '<button type="button" class="btn danger" data-ok="' + q.id + '">Delete</button>' : '<button type="button" class="btn go" data-ok="' + q.id + '">Load</button>') + '</div></div>';
+    }).join('') || '<p class="muted small">Queue is empty.</p>';
+    var last = {}; log.forEach(function (l) { if (!last[l[1]]) last[l[1]] = l; });
+    $('rlog').innerHTML = Object.keys(last).sort(function (a, b) { return b - a; }).map(function (k) {
+      var l = last[k], cls = /queued$|approved/.test(l[3]) ? 'ok' : /declined|rejected|queued-delete/.test(l[3]) ? 'bad' : '';
+      return '<li><span class="mono muted">' + l[0] + '</span> <b class="mono">' + pad(l[1]) + '</b> <span class="lp ' + cls + '">' + l[2] + ' · ' + l[3] + '</span> ' + l[4] + '</li>';
+    }).join('');
+  }
+  $('rqueue').addEventListener('click', function (ev) {
+    var t = ev.target.closest('button'); if (!t) return;
+    var id = +(t.dataset.ok || t.dataset.r), item = queue.filter(function (q) { return q.id === id; })[0];
+    queue = queue.filter(function (q) { return q.id !== id; });
+    if (t.dataset.ok) log.unshift(['21:45', id, 'owner', 'approved', item.kind === 'delete' ? 'moved to repairs/trash/' + ('00' + id).slice(-3) : 'loaded as gcp-adp-4']);
+    else { inbox.push(id); log.unshift(['21:45', id, 'owner', 'rejected', 'you changed the wrong heading']); }
+    renderRepairs();
+  });
+  renderRepairs();
+
+  // ---- commit history ----
+  var commits = '9c70a74 Add reproducible plan v1.2|6d1e4e0 Add exam format prompt for AI generators|ec6d082 Add markdown exam converter with validation|f393f07 Add converter samples and tests|35a8880 Add storage layer with scoring and green tally rule|7ae4b2d Add local HTTP server and JSON API|07c8aef Add maintenance CLI and parse-fix agent guide|fe9a329 Add web app shell and theme tokens|ad2a646 Add exam library view|744e8ba Add exam screen with timer, notes and review panel|31030ef Add results view with domain breakdown|1c8b4da Add settings panel|1326888 Add README|fee4fca Ignore local gitignore/ folder|b21a5ba Swap library view toggle to List then Tableau|9ab57ac Remove "not taken yet" label from cards|6d960d1 Ignore gitignorestuff/ folder and local CLAUDE.md|20bfa61 Allow hyphens in exam maker and name|71a951a Fix drop zone highlight flicker|21252f9 Remove parse-issue flag|1b9fd14 Take exam ID and grouping from the header only|28f10de Add paste mode to the library drop box|fc5abb9 Add parse inbox to settings|34d6d14 Add .FIXPARSE.MD|f932345 Add run.txt|56d92ca Rewrite README in three sections|3c9d9be Load one file at a time with a Load button|88c290e Add repairs storage with an append-only log|594880e Offer Repairs when a load fails|0e2cc2a Add Repairs section to settings|854a3cc Rewrite .FIXPARSE.MD for Repairs|7cf4915 Update README for Repairs|8eeaac5 Tell the repair agent to re-read the log before appending|9930a1a Let the repair agent flag conflicts and carry on|f620bf0 Let the repair agent propose deleting a request|8893fcc Explain delete proposals in .FIXPARSE.MD and README|bd67a26 Clarify who deletes in .FIXPARSE.MD|7be0077 Show last log entry per item by default|1c94183 Reorder settings: general, manage exams, repairs|a3f6132 Make manage exams collapsible with a filter and groups|c5eaca9 Add a pass mark per exam|0231917 Add the app\'s tab icon|c5deec2 Remove the global pass mark from settings|bf65df3 Expand manage exams by default|e6bdf5a Give the settings filter its own placeholder|446a1ee Align the File | Paste toggle with Load|94d68f7 Put the File | Paste toggle on the Load row|2ecc7d1 Use a copy icon on copy buttons|0d62660 Use a drawn gear icon for Settings|02facab Give the intake boxes one height and open the prompt by default|96f2e1d Make the intake boxes 2.25x taller|d6acf03 Add a download button to the prompt block|2a7b901 Add a render toggle to the prompt block|d3bedc0 Add a render preview to paste mode|08a5af9 Revert "Add a render preview to paste mode"|b55e835 Show exam tips when the prompt is collapsed|df79c7c Rename the prompt file to prompt-exam-parsable-output.md|465bdfa Keep the intake row height fixed when the prompt folds';
+  var list = $('commits');
+  commits.split('|').forEach(function (c, i) {
+    var sp = c.indexOf(' '), li = document.createElement('li');
+    var n = document.createElement('span'); n.className = 'n'; n.textContent = i + 1;
+    var h = document.createElement('span'); h.className = 'h'; h.textContent = c.slice(0, sp);
+    var m = document.createElement('span'); m.textContent = c.slice(sp + 1);
+    li.append(n, h, m); list.append(li);
+  });
+})();
+</script>
