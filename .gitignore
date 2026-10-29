@@ -14,6 +14,7 @@ __pycache__/
 
 # local scratch folder: anything inside gitignorestuff/ stays out of git
 gitignorestuff/
+gitignore/
 
 # local agent instructions
 CLAUDE.md
