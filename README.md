@@ -26,7 +26,7 @@ python3 server.py
 
 ## Use
 
-1. **Get an exam.** Copy `prompt-exam-parsable-output.md` from the library and give it to any AI with your request, e.g. *"GCP ADP, extra hard, follow this prompt for the output structure."*
+1. **Get an exam.** Copy `prompt-exam-parsable-output.md` from the library and give it to any AI with your request, e.g. *"GCP ADP, extra hard, follow this prompt for the output structure."* The AI also fills in two optional header lines: `made_by` (its own model name, as it reports it) and `flavour` (one line on what the exam is like, e.g. *extra theory, always one tempting wrong answer*). Both show on the card, so versions from different AIs are easy to tell apart in one stack.
 2. **Load it.** Drop the `.md` file or paste the reply, then press **Load**. If it's rejected, you see every reason at once.
 3. **Take it.** Answer, bookmark questions, write a note per question and use the review list. The timer is green while time is left, then turns red and counts overtime. It never submits for you. **Pause** works, but warns you that real exams don't have one.
 4. **Revise.** You get your score by domain, every explanation and your notes. Retakes start fresh. Tally marks count your attempts, and one turns green for your best clean pass: the highest score, at or above the pass mark, with no pause and no overtime.

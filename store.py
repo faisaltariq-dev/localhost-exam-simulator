@@ -455,6 +455,8 @@ class Store:
                 "exam": exam["exam_name"],
                 "number": exam["exam_number"],
                 "title": exam["title"],
+                "made_by": exam.get("made_by"),
+                "flavour": exam.get("flavour"),
                 "question_count": len(exam["questions"]),
                 "domain_count": len(exam.get("domains", [])),
                 "duration_minutes": effective_duration(exam, settings),

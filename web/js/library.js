@@ -313,7 +313,9 @@ function card(e, strip) {
     h('span', { class: 'tally' }, e.attempt_count ? tallySvg(e.attempt_count, greenIndex) : null)),
   h('div', { class: 'card-label' }, groupLabel(e.maker, e.exam)),
   h('div', { class: 'card-title' }, e.title),
-  h('div', { class: 'card-meta mono' }, `${e.id} · ${e.question_count} q · ${e.duration_minutes} min`));
+  e.flavour ? h('div', { class: 'card-flavour', title: e.flavour }, e.flavour) : null,
+  h('div', { class: 'card-meta mono' }, `${e.id} · ${e.question_count} q · ${e.duration_minutes} min`,
+    e.made_by ? h('span', { class: 'by-chip' }, e.made_by) : null));
 }
 
 function select(id) {
@@ -361,6 +363,8 @@ async function renderDetail() {
       h('div', null,
         h('div', { class: 'card-label' }, `${groupLabel(exam.maker, exam.exam)} · ${exam.id}`),
         h('h2', null, exam.title),
+        exam.flavour ? h('div', { class: 'flavour' }, exam.flavour) : null,
+        exam.made_by ? h('div', { class: 'muted small' }, `Made by ${exam.made_by}`) : null,
         h('div', { class: 'muted small' }, `${exam.question_count} questions · ${exam.domain_count} domains · ${exam.duration_minutes} min${timeNote} · pass ${exam.pass_mark_percent}%`)),
       h('button', { class: 'btn primary', type: 'button', onclick: go }, data.attempts.length ? 'Retake' : 'Start')),
     data.attempts.length

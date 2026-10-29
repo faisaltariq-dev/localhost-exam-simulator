@@ -5,6 +5,8 @@ exam_number: 1
 title: Sample Cloud Data – Warehousing Basics
 duration_minutes: 10
 domain_count: 3
+made_by: Sample Model 1
+flavour: Easy, but every question has one confusing answer
 ---
 
 # Domains

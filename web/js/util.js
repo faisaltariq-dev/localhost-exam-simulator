@@ -180,10 +180,10 @@ export function examMatcher(query) {
   if (m) {
     let re;
     try { re = new RegExp(m[1], 'i'); } catch (e) { return () => false; }
-    return (e) => re.test(e.id) || re.test(e.title);
+    return (e) => [e.id, e.title, e.made_by, e.flavour].some((v) => v && re.test(v));
   }
   const s = q.toLowerCase();
-  return (e) => `${e.id} ${e.title} ${groupLabel(e.maker, e.exam)}`.toLowerCase().includes(s);
+  return (e) => `${e.id} ${e.title} ${groupLabel(e.maker, e.exam)} ${e.made_by || ''} ${e.flavour || ''}`.toLowerCase().includes(s);
 }
 
 // Tally marks: one stroke per attempt, every fifth is a diagonal across the previous four.

@@ -112,6 +112,35 @@ class LenientParsingTest(unittest.TestCase):
         self.assertTrue(any(e.startswith("Header: missing") for e in errors))
 
 
+class OptionalHeaderFieldsTest(unittest.TestCase):
+    """made_by and flavour are optional, single-line and capped in length."""
+
+    def setUp(self):
+        self.text = read(SAMPLES, VALID)
+
+    def with_header(self, extra):
+        return self.text.replace("domain_count: 3\n", "domain_count: 3\n" + extra, 1)
+
+    def test_absent_fields_are_left_out(self):
+        exam = converter.parse_exam(VALID, self.text).exam
+        self.assertNotIn("made_by", exam)
+        self.assertNotIn("flavour", exam)
+
+    def test_present_fields_are_kept(self):
+        result = converter.parse_exam(VALID, self.with_header("made_by: Model A 2.0\nflavour: Extra theory, one tempting wrong answer\n"))
+        self.assertTrue(result.ok, result.errors)
+        self.assertEqual(result.exam["made_by"], "Model A 2.0")
+        self.assertEqual(result.exam["flavour"], "Extra theory, one tempting wrong answer")
+
+    def test_empty_field_rejected(self):
+        errors = converter.parse_exam(VALID, self.with_header("made_by:\n")).errors
+        self.assertIn("Header: made_by is empty (fill it in or leave the line out)", errors)
+
+    def test_too_long_field_rejected(self):
+        errors = converter.parse_exam(VALID, self.with_header("flavour: %s\n" % ("x" * 161))).errors
+        self.assertIn("Header: flavour is 161 characters, max 160", errors)
+
+
 class HyphenatedNamesTest(unittest.TestCase):
     """Hyphens and case in exam_maker/exam_name are ignored; the header alone decides the ID."""
     NAME = "questions-and-answers-sample-cloud-data-1.md"

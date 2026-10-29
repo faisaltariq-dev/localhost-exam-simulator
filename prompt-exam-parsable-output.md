@@ -11,9 +11,11 @@ This file defines the exact output format for a practice exam that will be loade
 
 ## Structure (in this order)
 1. A header between two `---` lines with exactly these fields:
-   exam_maker, exam_name, exam_number, title, duration_minutes, domain_count
+   exam_maker, exam_name, exam_number, title, duration_minutes, domain_count, made_by, flavour
    - duration_minutes = the official exam duration, unless my message says otherwise.
    - domain_count = how many domains you list in `# Domains`.
+   - made_by = your own model name and version, as precisely as you know it (at most 60 characters).
+   - flavour = one plain-language line on what this exam is like, restating what my message asked for: difficulty, focus and style, e.g. "Extra hard, theory-heavy, always one tempting wrong answer" (at most 160 characters).
 2. A `# Domains` section: one line per exam domain, `- D1: <name>`, `- D2: <name>`, …
    Use the official exam guide's domains when the exam has them.
 3. A `# Questions` section. Each question:
@@ -43,6 +45,8 @@ exam_number: <n>
 title: <Human-readable title>
 duration_minutes: <minutes>
 domain_count: <k>
+made_by: <your model name and version>
+flavour: <one line on what this exam is like>
 ---
 
 # Domains

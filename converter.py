@@ -17,6 +17,8 @@ FILENAME_RE = re.compile(r"^questions-and-answers-([a-z0-9]+(?:-[a-z0-9]+)*)-([1
 NAME_RE = re.compile(r"^[a-z0-9]+$")
 EXAM_ID_RE = re.compile(r"^[a-z0-9]+-[a-z0-9]+-[1-9][0-9]*$")
 HEADER_FIELDS = ("exam_maker", "exam_name", "exam_number", "title", "duration_minutes", "domain_count")
+# Optional, shown on cards: who wrote the exam (as the AI reports itself) and what it is like. Field -> max length.
+OPTIONAL_FIELDS = {"made_by": 60, "flavour": 160}
 SECTION_ORDER = ("domains", "questions", "answers")
 
 SECTION_RE = re.compile(r"^#\s+(domains|questions|answers)\s*$", re.I)
@@ -270,6 +272,11 @@ def parse_exam(filename, text):
     for field, value in (("exam_maker", maker), ("exam_name", name)):
         if header.get(field) and not NAME_RE.match(value):
             errors.append('Header: %s may only use letters, digits and hyphens (got "%s")' % (field, header[field]))
+    for field, limit in OPTIONAL_FIELDS.items():
+        if field in header and header[field] == "":
+            errors.append("Header: %s is empty (fill it in or leave the line out)" % field)
+        elif len(header.get(field, "")) > limit:
+            errors.append("Header: %s is %d characters, max %d" % (field, len(header[field]), limit))
 
     sections, order = _split_sections(lines, body_start, errors)
     for sec in SECTION_ORDER:
@@ -317,6 +324,7 @@ def parse_exam(filename, text):
         "exam_number": exam_number,
         "title": header["title"],
         "duration_minutes": duration,
+        **{field: header[field] for field in OPTIONAL_FIELDS if field in header},
         "domains": domains,
         "source_file": filename or "pasted text",
         "questions": [
