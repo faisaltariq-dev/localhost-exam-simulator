@@ -121,7 +121,7 @@ function reviseData(exam, attempt, pass) {
     const note = noteOf(q);
     if (note) {
       lines.push('');
-      note.split('\n').forEach((l, i) => lines.push(`> ${i === 0 ? "**User's note:** " : ''}${l}`));
+      lines.push(`**User's note:** "${note}"`);
     }
     return lines.join('\n');
   };
