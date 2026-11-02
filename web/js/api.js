@@ -41,6 +41,7 @@ export const api = {
   getSettings: () => request('GET', '/api/settings'),
   putSettings: (settings) => request('PUT', '/api/settings', settings),
   getPrompt: () => request('GET', '/prompt-exam-parsable-output.md'),
+  getRevisePrompt: () => request('GET', '/prompt-exam-revise.md'),
   load: (text, filename = '') => request('POST', `/api/upload?filename=${enc(filename)}`, text, true),
   repairs: () => request('GET', '/api/repairs'),
   sendToRepairs: (text, reason) => request('POST', '/api/repairs', { text, reason }),

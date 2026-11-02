@@ -236,12 +236,36 @@ tr.green td { background: var(--ok-soft); }
 /* =========================================================================
    Results
    ========================================================================= */
-.result-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 16px 20px; }
+.result-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; align-items: start; gap: 12px 24px; padding: 16px 20px; }
+.result-left { display: grid; gap: 10px; min-width: 0; }
 .score-block { display: grid; gap: 2px; }
 .score-big { font-size: 40px; font-weight: 800; line-height: 1; }
 .score-big.pass { color: var(--ok); }
 .score-big.fail { color: var(--bad); }
-.result-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; flex: 1 1 260px; }
+.result-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.result-head > .switch { padding-top: 6px; }
+/* Revise prompt: a fixed slot (the header's height, at least ~3 lines of text). Folded, the box is just
+   its header row; unfolded, it fills the slot and scrolls inside, so the page never moves. */
+.revise-slot { position: relative; align-self: stretch; min-height: 132px; min-width: 0; }
+.revise-box { position: absolute; top: 0; left: 0; right: 0; display: flex; flex-direction: column; min-height: 0;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.revise-box.open { bottom: 0; }
+.revise-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 6px 8px 6px 12px; }
+.revise-toggle { display: inline-flex; align-items: center; gap: 8px; min-width: 0; border: 0; background: none; padding: 0; text-align: left; color: inherit; }
+.revise-toggle .prompt-name { overflow-wrap: anywhere; }
+.revise-toggle .caret { font-size: 11px; color: var(--muted); transition: transform var(--transition); }
+.revise-box.open .revise-toggle .caret { transform: rotate(90deg); }
+.revise-actions { display: inline-flex; align-items: center; gap: 6px; }
+.revise-body { display: none; flex: 1; min-height: 0; border-top: 1px solid var(--line); }
+.revise-box.open .revise-body { display: flex; }
+.revise-text, .revise-rendered { flex: 1; min-height: 0; margin: 0; overflow: auto; font-size: 13px; }
+.revise-text { border: 0; border-radius: 0 0 var(--radius) var(--radius); white-space: pre-wrap; overflow-wrap: anywhere; }
+.revise-rendered { padding: 6px 14px 10px; line-height: 1.5; }
+.revise-rendered[hidden], .revise-text[hidden] { display: none; }
+@media (max-width: 760px) {
+  .result-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .revise-slot { grid-column: 1 / -1; grid-row: 2; height: 180px; }
+}
 .section-title { font-size: 16px; }
 .domain-id { font-weight: 700; color: var(--muted); }
 .barcell { width: 45%; }
