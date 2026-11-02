@@ -1,6 +1,6 @@
 Performance on the practice exam attempt below, for diagnosis purposes.
 
-This revision was generated from the exam described under "Exam" (title, ID, maker, made by). If you do not have that exam in your context, tell the user before going further.
+This revision was generated from the exam described under "Exam" (title, ID, maker, made by). If you do not have that exam in your context, do inform the user that you do not have it.
 
 It contains:
 
